@@ -28,7 +28,7 @@ use crate::pool::MemPool;
 use crate::send_sync_non_null::SendSyncNonNull;
 use bitflags::bitflags;
 use libc::ptrdiff_t;
-use parking_lot::Mutex;
+use parking_lot::RwLock;
 use std::ffi::c_int;
 use std::ffi::c_void;
 use std::mem;
@@ -220,7 +220,7 @@ fn picture_alloc_with_edges(
     p: &mut Rav1dPicture,
     w: c_int,
     h: c_int,
-    seq_hdr: Option<Arc<Mutex<DRav1d<Rav1dSequenceHeader, Dav1dSequenceHeader>>>>,
+    seq_hdr: Option<Arc<RwLock<DRav1d<Rav1dSequenceHeader, Dav1dSequenceHeader>>>>,
     frame_hdr: Option<Arc<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>>>,
     bpc: u8,
     p_allocator: &Rav1dPicAllocator,

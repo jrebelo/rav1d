@@ -1,6 +1,6 @@
 #![deny(unsafe_code)]
 
-use parking_lot::Mutex;
+use parking_lot::RwLock;
 
 use crate::c_arc::CArc;
 use crate::decode::rav1d_submit_frame;
@@ -2283,7 +2283,7 @@ fn parse_obus(
                     state.frame_flags |= PictureFlags::NEW_SEQUENCE;
                 }
                 Some(c_seq_hdr)
-                    if !seq_hdr.eq_without_operating_parameter_info(&c_seq_hdr.lock()) =>
+                    if !seq_hdr.eq_without_operating_parameter_info(&c_seq_hdr.read()) =>
                 {
                     // See 7.5, `operating_parameter_info` is allowed to change in
                     // sequence headers of a single sequence.
@@ -2302,7 +2302,7 @@ fn parse_obus(
                 }
                 Some(c_seq_hdr)
                     if seq_hdr.operating_parameter_info
-                        != c_seq_hdr.lock().operating_parameter_info =>
+                        != c_seq_hdr.read().operating_parameter_info =>
                 {
                     // If operating_parameter_info changed, signal it
                     state.frame_flags |= PictureFlags::NEW_OP_PARAMS_INFO;
@@ -2310,8 +2310,8 @@ fn parse_obus(
                 _ => {}
             }
             match &state.seq_hdr {
-                Some(s) => *s.lock() = DRav1d::from_rav1d(seq_hdr),
-                None => state.seq_hdr = Some(Arc::new(Mutex::new(DRav1d::from_rav1d(seq_hdr)))),
+                Some(s) => *s.write() = DRav1d::from_rav1d(seq_hdr),
+                None => state.seq_hdr = Some(Arc::new(RwLock::new(DRav1d::from_rav1d(seq_hdr)))),
             };
             // TODO(kkysen) fallible allocation
         }
@@ -2324,7 +2324,7 @@ fn parse_obus(
             let frame_hdr = parse_frame_hdr(
                 c,
                 state,
-                &state.seq_hdr.as_ref().ok_or(EINVAL)?.lock(),
+                &state.seq_hdr.as_ref().ok_or(EINVAL)?.read(),
                 temporal_id,
                 spatial_id,
                 gb,

@@ -31,7 +31,7 @@ use crate::strided::Strided;
 use crate::with_offset::WithOffset;
 use libc::ptrdiff_t;
 use libc::uintptr_t;
-use parking_lot::Mutex;
+use parking_lot::RwLock;
 use std::array;
 use std::ffi::c_int;
 use std::ffi::c_void;
@@ -415,7 +415,7 @@ impl Drop for Rav1dPictureData {
 #[derive(Clone, Default)]
 #[repr(C)]
 pub(crate) struct Rav1dPicture {
-    pub seq_hdr: Option<Arc<Mutex<DRav1d<Rav1dSequenceHeader, Dav1dSequenceHeader>>>>,
+    pub seq_hdr: Option<Arc<RwLock<DRav1d<Rav1dSequenceHeader, Dav1dSequenceHeader>>>>,
     pub frame_hdr: Option<Arc<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>>>,
     pub data: Option<Arc<Rav1dPictureData>>,
     pub stride: [ptrdiff_t; 2],
@@ -501,7 +501,7 @@ impl From<Rav1dPicture> for Dav1dPicture {
         } = value;
         Self {
             // [`DRav1d::from_rav1d`] is called right after [`parse_seq_hdr`].
-            seq_hdr: seq_hdr.as_ref().map(|arc| (&arc.lock().dav1d).into()),
+            seq_hdr: seq_hdr.as_ref().map(|arc| (&arc.read().dav1d).into()),
             // [`DRav1d::from_rav1d`] is called in [`parse_frame_hdr`].
             frame_hdr: frame_hdr.as_ref().map(|arc| (&arc.as_ref().dav1d).into()),
             data: data
@@ -754,11 +754,11 @@ impl Rav1dPicAllocator {
         &self,
         w: c_int,
         h: c_int,
-        seq_hdr: Arc<Mutex<DRav1d<Rav1dSequenceHeader, Dav1dSequenceHeader>>>,
+        seq_hdr: Arc<RwLock<DRav1d<Rav1dSequenceHeader, Dav1dSequenceHeader>>>,
         frame_hdr: Option<Arc<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>>>,
     ) -> Rav1dResult<Rav1dPicture> {
-        let layout = seq_hdr.lock().layout;
-        let hbd = seq_hdr.lock().hbd;
+        let layout = seq_hdr.read().layout;
+        let hbd = seq_hdr.read().hbd;
         let pic = Rav1dPicture {
             p: Rav1dPictureParameters {
                 w,
