@@ -2128,7 +2128,7 @@ pub(crate) fn rav1d_recon_b_intra<BD: BitDepth>(
     let cbw4 = bw4 + ss_hor >> ss_hor;
     let cbh4 = bh4 + ss_ver >> ss_ver;
 
-    let intra_edge_filter = f.seq_hdr.as_ref().unwrap().intra_edge_filter;
+    let intra_edge_filter = f.seq_hdr.as_ref().unwrap().lock().intra_edge_filter;
     let intra_edge_filter_flag = (intra_edge_filter as c_int) << 10;
 
     for init_y in (0..h4).step_by(16) {
@@ -3665,7 +3665,7 @@ pub(crate) fn rav1d_filter_sbrow_deblock_cols<BD: BitDepth>(
 
     let y = sby * f.sb_step * 4;
     let p = f.cur.lf_offsets::<BD>(y);
-    let seq_hdr = &***f.seq_hdr.as_ref().unwrap();
+    let seq_hdr = &**f.seq_hdr.as_ref().unwrap().lock();
     let mask_offset = (sby >> (seq_hdr.sb128 == 0) as c_int) * f.sb128w;
     rav1d_loopfilter_sbrow_cols::<BD>(
         f,
@@ -3684,7 +3684,7 @@ pub(crate) fn rav1d_filter_sbrow_deblock_rows<BD: BitDepth>(
 ) {
     let y = sby * f.sb_step * 4;
     let p = f.cur.lf_offsets::<BD>(y);
-    let seq_hdr = &***f.seq_hdr.as_ref().unwrap();
+    let seq_hdr = &**f.seq_hdr.as_ref().unwrap().lock();
     let sb128 = seq_hdr.sb128;
     let cdef = seq_hdr.cdef;
     let mask_offset = (sby >> (sb128 == 0) as c_int) * f.sb128w;
@@ -3713,7 +3713,7 @@ pub(crate) fn rav1d_filter_sbrow_cdef<BD: BitDepth>(
     let sbsz = f.sb_step;
     let y = sby * sbsz * 4;
     let p = f.cur.lf_offsets::<BD>(y);
-    let seq_hdr = &***f.seq_hdr.as_ref().unwrap();
+    let seq_hdr = &**f.seq_hdr.as_ref().unwrap().lock();
     let prev_mask = (sby - 1 >> (seq_hdr.sb128 == 0) as c_int) * f.sb128w;
     let mask_offset = (sby >> (seq_hdr.sb128 == 0) as c_int) * f.sb128w;
     let start = sby * sbsz;
@@ -3794,7 +3794,7 @@ pub(crate) fn rav1d_filter_sbrow<BD: BitDepth>(
 ) {
     rav1d_filter_sbrow_deblock_cols::<BD>(c, f, t, sby);
     rav1d_filter_sbrow_deblock_rows::<BD>(c, f, t, sby);
-    let seq_hdr = &***f.seq_hdr.as_ref().unwrap();
+    let seq_hdr = &**f.seq_hdr.as_ref().unwrap().lock();
     if seq_hdr.cdef != 0 {
         rav1d_filter_sbrow_cdef::<BD>(c, f, t, sby);
     }

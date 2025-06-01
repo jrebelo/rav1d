@@ -1147,7 +1147,7 @@ fn decode_b(
     bp: BlockPartition,
     intra_edge_flags: EdgeFlags,
 ) -> Result<(), ()> {
-    let seq_hdr = &***f.seq_hdr.as_ref().unwrap();
+    let seq_hdr = &**f.seq_hdr.as_ref().unwrap().lock();
     use std::fmt;
 
     /// Helper struct for printing a number as a signed hexidecimal value.
@@ -1788,7 +1788,7 @@ fn decode_b(
 
         let mut y_mode = y_mode;
         let mut y_angle = y_angle;
-        let seq_hdr = f.seq_hdr();
+        let seq_hdr = f.seq_hdr.as_ref().unwrap().lock();
         if y_mode == DC_PRED
             && pal_sz[0] == 0
             && cmp::max(b_dim[2], b_dim[3]) <= 3
@@ -3440,7 +3440,7 @@ fn decode_sb(
     let have_h_split = f.bw > t.b.x + hsz;
     let have_v_split = f.bh > t.b.y + hsz;
 
-    let sb128 = f.seq_hdr().sb128 != 0;
+    let sb128 = f.seq_hdr.as_ref().unwrap().lock().sb128 != 0;
     let intra_edge = &IntraEdges::DEFAULT;
 
     if !have_h_split && !have_v_split {
@@ -4100,7 +4100,7 @@ pub(crate) fn rav1d_decode_tile_sbrow(
     t: &mut Rav1dTaskContext,
     f: &Rav1dFrameData,
 ) -> Result<(), ()> {
-    let seq_hdr = &***f.seq_hdr.as_ref().unwrap();
+    let seq_hdr = &**f.seq_hdr.as_ref().unwrap().lock();
     let root_bl = if seq_hdr.sb128 != 0 {
         BlockLevel::Bl128x128
     } else {
@@ -4157,7 +4157,7 @@ pub(crate) fn rav1d_decode_tile_sbrow(
                 root_bl,
                 EdgeIndex::root(),
             )?;
-            if t.b.x & 16 != 0 || f.seq_hdr().sb128 != 0 {
+            if t.b.x & 16 != 0 || f.seq_hdr.as_ref().unwrap().lock().sb128 != 0 {
                 t.a += 1;
             }
         }
@@ -4272,13 +4272,13 @@ pub(crate) fn rav1d_decode_tile_sbrow(
             root_bl,
             EdgeIndex::root(),
         )?;
-        if t.b.x & 16 != 0 || f.seq_hdr().sb128 != 0 {
+        if t.b.x & 16 != 0 || f.seq_hdr.as_ref().unwrap().lock().sb128 != 0 {
             t.a += 1;
             t.lf_mask = t.lf_mask.map(|i| i + 1);
         }
     }
 
-    if f.seq_hdr().ref_frame_mvs != 0
+    if f.seq_hdr.as_ref().unwrap().lock().ref_frame_mvs != 0
         && c.tc.len() > 1
         && f.frame_hdr().frame_type.is_inter_or_switch()
     {
@@ -4366,7 +4366,7 @@ pub(crate) fn rav1d_decode_frame_init(c: &Rav1dContext, fc: &Rav1dFrameContext) 
 
     let num_sb128 = f.sb128w * f.sb128h;
     let size_mul = &ss_size_mul[f.cur.p.layout];
-    let seq_hdr = &***f.seq_hdr.as_ref().unwrap();
+    let seq_hdr = &**f.seq_hdr.as_ref().unwrap().lock();
     let hbd = (seq_hdr.hbd != 0) as c_int;
     if c.fc.len() > 1 {
         let mut tile_idx = 0;
@@ -4709,7 +4709,7 @@ pub(crate) fn rav1d_decode_frame_init_cdf(
             setup_tile(
                 c,
                 ts,
-                &***f.seq_hdr.as_ref().unwrap(),
+                &**f.seq_hdr.as_ref().unwrap().lock(),
                 frame_hdr,
                 f.bitdepth_max,
                 f.sb_shift,
@@ -4786,7 +4786,7 @@ fn rav1d_decode_frame_main(c: &Rav1dContext, f: &mut Rav1dFrameData) -> Rav1dRes
         let sbh_end = cmp::min(sbh_end.into(), f.sbh);
 
         for sby in sbh_start.into()..sbh_end {
-            let seq_hdr = &***f.seq_hdr.as_ref().unwrap();
+            let seq_hdr = &**f.seq_hdr.as_ref().unwrap().lock();
             let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
             t.b.y = sby << 4 + seq_hdr.sb128;
             let by_end = t.b.y + f.sb_step >> 1;
@@ -4983,7 +4983,6 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
     let mut f = fc.data.try_write().unwrap();
     f.seq_hdr = state.seq_hdr.clone();
     f.frame_hdr = mem::take(&mut state.frame_hdr);
-    let seq_hdr = f.seq_hdr.clone().unwrap();
 
     fn on_error(
         fc: &Rav1dFrameContext,
@@ -5015,7 +5014,7 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
         fc.task_thread.finished.store(true, Ordering::SeqCst);
     }
 
-    let bpc = 8 + 2 * seq_hdr.hbd;
+    let bpc = 8 + 2 * f.seq_hdr.as_ref().unwrap().lock().hbd;
     match Rav1dBitDepthDSPContext::get(bpc) {
         Some(dsp) => f.dsp = dsp,
         None => {
@@ -5058,7 +5057,7 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
                 || (frame_hdr.size.height * 2) < state.refs[refidx].p.p.p.h
                 || frame_hdr.size.width[0] > state.refs[refidx].p.p.p.w * 16
                 || frame_hdr.size.height > state.refs[refidx].p.p.p.h * 16
-                || seq_hdr.layout != state.refs[refidx].p.p.p.layout
+                || f.seq_hdr.as_ref().unwrap().lock().layout != state.refs[refidx].p.p.p.layout
                 || bpc != state.refs[refidx].p.p.p.bpc
             {
                 for j in 0..i {
@@ -5162,7 +5161,7 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
         return res;
     }
 
-    let seq_hdr = f.seq_hdr.as_ref().unwrap().clone();
+    let sb128 = f.seq_hdr.as_ref().unwrap().lock().sb128;
     let frame_hdr = f.frame_hdr.as_ref().unwrap().clone();
 
     if frame_hdr.size.width[0] != frame_hdr.size.width[1] {
@@ -5203,8 +5202,8 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
     f.bh = (frame_hdr.size.height + 7 >> 3) << 1;
     f.sb128w = f.bw + 31 >> 5;
     f.sb128h = f.bh + 31 >> 5;
-    f.sb_shift = 4 + seq_hdr.sb128 as c_int;
-    f.sb_step = 16 << seq_hdr.sb128;
+    f.sb_shift = 4 + sb128 as c_int;
+    f.sb_step = 16 << sb128;
     f.sbh = f.bh + f.sb_step - 1 >> f.sb_shift;
     f.b4_stride = (f.bw + 31 & !31) as ptrdiff_t;
     f.bitdepth_max = (1 << f.cur.p.bpc) - 1;

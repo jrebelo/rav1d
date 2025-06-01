@@ -1,5 +1,7 @@
 #![deny(unsafe_op_in_unsafe_fn)]
 
+use parking_lot::Mutex;
+
 use crate::c_box::CBox;
 use crate::error::Rav1dResult;
 use std::marker::PhantomData;
@@ -194,6 +196,12 @@ impl<T> RawArc<T> {
         Self(arc_into_raw(arc).cast())
     }
 
+    pub fn from_arc_lock(arc: Arc<Mutex<T>>) -> Self {
+        // SAFETY: [`Arc`] is never null.
+        let raw = arc.lock().deref() as *const T as *mut T;
+        Self(unsafe { NonNull::new_unchecked(raw.cast()) })
+    }
+
     /// # Safety
     ///
     /// The [`RawArc`] must be originally from [`Self::from_arc`].
@@ -218,6 +226,19 @@ impl<T> RawArc<T> {
     ///
     /// After calling this, the [`RawArc`] and [`Clone`]s of it may not be used anymore.
     pub unsafe fn into_arc(self) -> Arc<T> {
+        let raw = self.0.cast().as_ptr();
+        // SAFETY: `self` must be from `Self::from_arc`,
+        // which calls `Arc::into_raw`.
+        // Thus, it is safe to call the inverse `Arc::from_raw` on it.
+        unsafe { Arc::from_raw(raw) }
+    }
+
+    /// # Safety
+    ///
+    /// The [`RawArc`] must be originally from [`Self::from_arc_lock`].
+    ///
+    /// After calling this, the [`RawArc`] and [`Clone`]s of it may not be used anymore.
+    pub unsafe fn into_arc_lock(self) -> Arc<Mutex<T>> {
         let raw = self.0.cast().as_ptr();
         // SAFETY: `self` must be from `Self::from_arc`,
         // which calls `Arc::into_raw`.
