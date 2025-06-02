@@ -121,7 +121,7 @@ macro_rules! debug_block_info {
         use crate::internal::Bxy;
 
         let tb: Bxy = $tb;
-        false && $f.frame_hdr.as_ref().unwrap().frame_offset == 2 && tb.debug_block_info()
+        false && $f.frame_hdr.as_ref().unwrap().read().frame_offset == 2 && tb.debug_block_info()
     }};
 }
 pub(crate) use debug_block_info;
@@ -540,7 +540,7 @@ fn decode_coefs<BD: BitDepth>(
     let mut dc_dq;
     let ts = &f.ts[ts];
     let chroma = plane != 0;
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap().read();
     let lossless = frame_hdr.segmentation.lossless[b.seg_id.get()];
     let t_dim = &dav1d_txfm_dimensions[tx as usize];
     let dbg = dbg_block_info && plane != 0 && false;
@@ -2816,7 +2816,7 @@ pub(crate) fn rav1d_recon_b_inter<BD: BitDepth>(
         + 4 * (t.b.y as isize * y_dst.pixel_stride::<BD>() + t.b.x as isize);
     let uvdstoff = 4
         * ((t.b.x >> ss_hor) as isize + (t.b.y >> ss_ver) as isize * BD::pxstride(f.cur.stride[1]));
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap().read();
     if frame_hdr.frame_type.is_key_or_intra() {
         // intrabc
         assert!(!frame_hdr.size.super_res.enabled);
@@ -3658,7 +3658,7 @@ pub(crate) fn rav1d_filter_sbrow_deblock_cols<BD: BitDepth>(
         return;
     }
 
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap().read();
     if frame_hdr.loopfilter.level_y == [0; 2] {
         return;
     }
@@ -3688,7 +3688,7 @@ pub(crate) fn rav1d_filter_sbrow_deblock_rows<BD: BitDepth>(
     let sb128 = seq_hdr.sb128;
     let cdef = seq_hdr.cdef;
     let mask_offset = (sby >> (sb128 == 0) as c_int) * f.sb128w;
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap().read();
     if c.inloop_filters.contains(Rav1dInloopFilterType::DEBLOCK)
         && (frame_hdr.loopfilter.level_y != [0; 2])
     {
@@ -3798,7 +3798,7 @@ pub(crate) fn rav1d_filter_sbrow<BD: BitDepth>(
     if seq_hdr.cdef != 0 {
         rav1d_filter_sbrow_cdef::<BD>(c, f, t, sby);
     }
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap().read();
     if frame_hdr.size.width[0] != frame_hdr.size.width[1] {
         rav1d_filter_sbrow_resize::<BD>(c, f, t, sby);
     }

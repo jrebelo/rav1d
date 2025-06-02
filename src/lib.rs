@@ -526,7 +526,13 @@ impl Rav1dFilmGrainData {
 
 impl Rav1dPicture {
     fn has_grain(&self) -> bool {
-        self.frame_hdr.as_ref().unwrap().film_grain.data.has_grain()
+        self.frame_hdr
+            .as_ref()
+            .unwrap()
+            .read()
+            .film_grain
+            .data
+            .has_grain()
     }
 }
 
@@ -558,7 +564,7 @@ fn output_picture_ready(c: &Rav1dContext, state: &mut Rav1dState, drain: bool) -
     }
     if !c.all_layers && state.max_spatial_id != 0 {
         if state.out.p.data.is_some() && state.cache.p.data.is_some() {
-            if state.max_spatial_id == state.cache.p.frame_hdr.as_ref().unwrap().spatial_id
+            if state.max_spatial_id == state.cache.p.frame_hdr.as_ref().unwrap().read().spatial_id
                 || state.out.flags.contains(PictureFlags::NEW_TEMPORAL_UNIT)
             {
                 return true;

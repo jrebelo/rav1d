@@ -154,7 +154,7 @@ fn lr_sbrow<BD: BitDepth>(
     let chroma = (plane != 0) as c_int;
     let ss_ver = chroma & (f.sr_cur.p.p.layout == Rav1dPixelLayout::I420) as c_int;
     let ss_hor = chroma & (f.sr_cur.p.p.layout != Rav1dPixelLayout::I444) as c_int;
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap().read();
     let unit_size_log2 = frame_hdr.restoration.unit_size[(plane != 0) as usize];
     let unit_size = (1 as c_int) << unit_size_log2;
     let half_unit_size = unit_size >> 1;

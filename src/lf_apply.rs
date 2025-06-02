@@ -156,7 +156,7 @@ pub(crate) fn rav1d_copy_lpf<BD: BitDepth>(
     let bd = BD::from_c(f.bitdepth_max);
 
     let have_tt = (c.tc.len() > 1) as c_int;
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap().read();
     let resize = (frame_hdr.size.width[0] != frame_hdr.size.width[1]) as c_int;
     let offset_y = 8 * (sby != 0) as c_int;
     let seq_hdr = &**f.seq_hdr.as_ref().unwrap().read();
@@ -539,7 +539,7 @@ pub(crate) fn rav1d_loopfilter_sbrow_cols<BD: BitDepth>(
     let uv_endy4 = (endy4 + ss_ver as u32) >> ss_ver;
     let mut lpf_y_idx = (sby << sbl2) as usize;
     let mut lpf_uv_idx = (sby << sbl2 - ss_ver) as usize;
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap().read();
 
     // fix lpf strength at tile col boundaries
     let mut tile_col = 1;
@@ -702,7 +702,7 @@ pub(crate) fn rav1d_loopfilter_sbrow_rows<BD: BitDepth>(
         );
     }
 
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap().read();
     if frame_hdr.loopfilter.level_u == 0 && frame_hdr.loopfilter.level_v == 0 {
         return;
     }

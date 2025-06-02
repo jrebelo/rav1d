@@ -800,7 +800,7 @@ fn read_vartx_tree(
     // var-tx tree coding
     let mut tx_split = [0u16; 2];
     let mut max_ytx = dav1d_max_txfm_size_for_bs[bs as usize][0];
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap().read();
     let txfm_mode = frame_hdr.txfm_mode;
     let uvtx;
     if b.skip == 0 && (frame_hdr.segmentation.lossless[b.seg_id.get()] || max_ytx == TxfmSize::S4x4)
@@ -1190,7 +1190,7 @@ fn decode_b(
     let has_chroma = f.cur.p.layout != Rav1dPixelLayout::I400
         && (bw4 > ss_hor || t.b.x & 1 != 0)
         && (bh4 > ss_ver || t.b.y & 1 != 0);
-    let frame_type = f.frame_hdr.as_ref().unwrap().frame_type;
+    let frame_type = f.frame_hdr.as_ref().unwrap().read().frame_type;
 
     let FrameThreadPassState::First(ts_c) = pass else {
         match &b.ii {
@@ -1335,7 +1335,7 @@ fn decode_b(
 
     // segment_id (if seg_feature for skip/ref/gmv is enabled)
     let mut seg_pred = false;
-    let frame_hdr: &Rav1dFrameHeader = &f.frame_hdr.as_ref().unwrap();
+    let frame_hdr: &Rav1dFrameHeader = &f.frame_hdr.as_ref().unwrap().read();
     if frame_hdr.segmentation.enabled != 0 {
         if frame_hdr.segmentation.update_map == 0 {
             b.seg_id = f
@@ -1885,7 +1885,7 @@ fn decode_b(
             }
         }
 
-        let frame_hdr = f.frame_hdr();
+        let frame_hdr = f.frame_hdr.as_ref().unwrap().read();
 
         let tx = if frame_hdr.segmentation.lossless[b.seg_id.get()] {
             b.uvtx = TxfmSize::S4x4;
@@ -1931,7 +1931,7 @@ fn decode_b(
             (bd_fn.recon_b_intra)(f, t, Some(ts_c), bs, intra_edge_flags, b, &intra);
         }
 
-        if f.frame_hdr().loopfilter.level_y != [0, 0] {
+        if f.frame_hdr.as_ref().unwrap().read().loopfilter.level_y != [0, 0] {
             let lflvl = match ts.lflvl.get() {
                 TileStateRef::Frame => &f.lf.lvl,
                 TileStateRef::Local => &*ts.lflvlmem.try_read().unwrap(),
@@ -1968,7 +1968,13 @@ fn decode_b(
         } else {
             y_mode
         };
-        let is_inter_or_switch = f.frame_hdr().frame_type.is_inter_or_switch();
+        let is_inter_or_switch = f
+            .frame_hdr
+            .as_ref()
+            .unwrap()
+            .read()
+            .frame_type
+            .is_inter_or_switch();
         CaseSet::<32, false>::many(
             [(&t.l, t_dim.lh, 1), (ta, t_dim.lw, 0)],
             [bh4 as usize, bw4 as usize],
@@ -2020,7 +2026,7 @@ fn decode_b(
                 );
             }
         }
-        let frame_hdr = f.frame_hdr();
+        let frame_hdr = f.frame_hdr.as_ref().unwrap().read();
         if frame_hdr.frame_type.is_inter_or_switch() || frame_hdr.allow_intrabc {
             splat_intraref(c, t, &f.rf, bs, bw4 as usize, bh4 as usize);
         }
@@ -2524,11 +2530,12 @@ fn decode_b(
                             .frame_hdr
                             .as_ref()
                             .unwrap()
+                            .read()
                             .frame_offset as c_uint
                     });
                     let jnt_ctx = get_jnt_comp_ctx(
                         f.seq_hdr.as_ref().unwrap().read().order_hint_n_bits,
-                        f.cur.frame_hdr.as_ref().unwrap().frame_offset as c_uint,
+                        f.cur.frame_hdr.as_ref().unwrap().read().frame_offset as c_uint,
                         ref0poc,
                         ref1poc,
                         ta,
@@ -3064,7 +3071,7 @@ fn decode_b(
             (bd_fn.recon_b_inter)(f, t, Some(ts_c), bs, b, &inter)?;
         }
 
-        let frame_hdr = f.frame_hdr();
+        let frame_hdr = f.frame_hdr.as_ref().unwrap().read();
         if frame_hdr.loopfilter.level_y != [0, 0] {
             let is_globalmv =
                 (inter_mode == if is_comp { GLOBALMV_GLOBALMV } else { GLOBALMV }) as c_int;
@@ -3156,7 +3163,7 @@ fn decode_b(
     }
 
     // update contexts
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap().read();
     if frame_hdr.segmentation.enabled != 0 && frame_hdr.segmentation.update_map != 0 {
         // Need checked casts here because we're using `from_raw_parts_mut` and an overflow would be UB.
         let [by, bx, bh4, bw4] = [t.b.y, t.b.x, bh4, bw4].map(|it| usize::try_from(it).unwrap());
@@ -3462,7 +3469,7 @@ fn decode_sb(
         );
     }
 
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap().read();
 
     let bp;
     let mut bx8 = 0;
@@ -4114,7 +4121,7 @@ pub(crate) fn rav1d_decode_tile_sbrow(
     let sb_step = f.sb_step;
     let tile_row = ts.tiling.row;
     let tile_col = ts.tiling.col;
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap().read();
     let col_sb_start = frame_hdr.tiling.col_start_sb[tile_col as usize] as c_int;
     let col_sb128_start = col_sb_start >> (sb128 == 0) as c_int;
 
@@ -4201,7 +4208,7 @@ pub(crate) fn rav1d_decode_tile_sbrow(
             let cdef_idx = &cdef_idx[t.cur_sb_cdef_idx..];
             cdef_idx[0].set(-1);
         }
-        let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+        let frame_hdr = &**f.frame_hdr.as_ref().unwrap().read();
         // Restoration filter
         for p in 0..3 {
             if (f.lf.restore_planes.bits() >> p) & 1 == 0 {
@@ -4284,7 +4291,12 @@ pub(crate) fn rav1d_decode_tile_sbrow(
 
     if f.seq_hdr.as_ref().unwrap().read().ref_frame_mvs != 0
         && c.tc.len() > 1
-        && f.frame_hdr().frame_type.is_inter_or_switch()
+        && f.frame_hdr
+            .as_ref()
+            .unwrap()
+            .read()
+            .frame_type
+            .is_inter_or_switch()
     {
         c.dsp.refmvs.save_tmvs.call(
             &t.rt,
@@ -4329,7 +4341,8 @@ pub(crate) fn rav1d_decode_tile_sbrow(
 
     if c.strict_std_compliance
         && (t.b.y >> f.sb_shift) + 1
-            >= f.frame_hdr().tiling.row_start_sb[tile_row as usize + 1].into()
+            >= f.frame_hdr.as_ref().unwrap().read().tiling.row_start_sb[tile_row as usize + 1]
+                .into()
     {
         return check_trailing_bits_after_symbol_coder(&ts.context.try_lock().unwrap().msac);
     }
@@ -4343,7 +4356,7 @@ pub(crate) fn rav1d_decode_frame_init(c: &Rav1dContext, fc: &Rav1dFrameContext) 
     // TODO: Fallible allocation
     f.lf.start_of_tile_row.resize(f.sbh as usize, 0);
 
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap().read();
     let mut sby = 0;
     for tile_row in 0..frame_hdr.tiling.rows {
         f.lf.start_of_tile_row[sby as usize] = tile_row;
@@ -4431,8 +4444,8 @@ pub(crate) fn rav1d_decode_frame_init(c: &Rav1dContext, fc: &Rav1dFrameContext) 
                 .pal_idx
                 .resize(pal_idx_sz as usize * 128 * 128 / 8, Default::default());
         } else if !f.frame_thread.pal.is_empty() {
-            let _ = mem::take(&mut f.frame_thread.pal);
-            let _ = mem::take(&mut f.frame_thread.pal_idx);
+            f.frame_thread.pal = Default::default();
+            f.frame_thread.pal_idx = Default::default();
         }
     }
 
@@ -4613,7 +4626,7 @@ pub(crate) fn rav1d_decode_frame_init(c: &Rav1dContext, fc: &Rav1dFrameContext) 
     // setup jnt_comp weights
     if frame_hdr.switchable_comp_refs != 0 {
         let ref_pocs: [_; 7] =
-            array::from_fn(|i| f.refp[i].p.frame_hdr.as_ref().unwrap().frame_offset);
+            array::from_fn(|i| f.refp[i].p.frame_hdr.as_ref().unwrap().read().frame_offset);
         for i in 0..ref_pocs.len() {
             for j in i + 1..ref_pocs.len() {
                 let d = [j, i].map(|ij| {
@@ -4621,7 +4634,7 @@ pub(crate) fn rav1d_decode_frame_init(c: &Rav1dContext, fc: &Rav1dFrameContext) 
                         (get_poc_diff(
                             f.seq_hdr.as_ref().unwrap().read().order_hint_n_bits,
                             ref_pocs[ij] as c_int,
-                            f.cur.frame_hdr.as_ref().unwrap().frame_offset as c_int,
+                            f.cur.frame_hdr.as_ref().unwrap().read().frame_offset as c_int,
                         ))
                         .unsigned_abs(),
                         31,
@@ -4655,7 +4668,7 @@ pub(crate) fn rav1d_decode_frame_init_cdf(
     f: &mut Rav1dFrameData,
     in_cdf: &CdfThreadContext,
 ) -> Rav1dResult {
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap().read();
 
     if frame_hdr.refresh_context != 0 {
         *f.out_cdf.cdf_write() = rav1d_cdf_thread_copy(in_cdf);
@@ -4775,7 +4788,7 @@ fn rav1d_decode_frame_main(c: &Rav1dContext, f: &mut Rav1dFrameData) -> Rav1dRes
     };
     let mut t = t.lock();
 
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap().read();
 
     for ctx in &mut f.a[..f.sb128w as usize * frame_hdr.tiling.rows as usize] {
         reset_context(ctx, frame_hdr.frame_type.is_key_or_intra(), 0);
@@ -4795,7 +4808,7 @@ fn rav1d_decode_frame_main(c: &Rav1dContext, f: &mut Rav1dFrameData) -> Rav1dRes
 
         for sby in sbh_start.into()..sbh_end {
             let sb128 = f.seq_hdr.as_ref().unwrap().read().sb128;
-            let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+            let frame_hdr = &**f.frame_hdr.as_ref().unwrap().read();
             t.b.y = sby << 4 + sb128;
             let by_end = t.b.y + f.sb_step >> 1;
             if frame_hdr.use_ref_frame_mvs != 0 {
@@ -4814,7 +4827,13 @@ fn rav1d_decode_frame_main(c: &Rav1dContext, f: &mut Rav1dFrameData) -> Rav1dRes
                 t.ts = tile_row * cols + col;
                 rav1d_decode_tile_sbrow(c, &mut t, f).map_err(|()| EINVAL)?;
             }
-            if f.frame_hdr().frame_type.is_inter_or_switch() {
+            if f.frame_hdr
+                .as_ref()
+                .unwrap()
+                .read()
+                .frame_type
+                .is_inter_or_switch()
+            {
                 c.dsp
                     .refmvs
                     .save_tmvs
@@ -4857,28 +4876,28 @@ pub(crate) fn rav1d_decode_frame_exit(
         }
     }
 
-    let _ = mem::take(&mut f.refp);
-    let _ = mem::take(&mut f.ref_mvs);
-    let _ = mem::take(&mut f.cur);
-    let _ = mem::take(&mut f.sr_cur);
-    let _ = mem::take(&mut *fc.in_cdf.try_write().unwrap());
+    f.refp = Default::default();
+    f.ref_mvs = Default::default();
+    f.cur = Default::default();
+    f.sr_cur = Default::default();
+    *fc.in_cdf.try_write().unwrap() = Default::default();
     if let Some(frame_hdr) = &f.frame_hdr {
-        if frame_hdr.refresh_context != 0 {
+        if frame_hdr.read().refresh_context != 0 {
             if let Some(progress) = f.out_cdf.progress() {
                 progress.store(
                     if retval.is_ok() { 1 } else { TILE_ERROR as u32 },
                     Ordering::SeqCst,
                 );
             }
-            let _ = mem::take(&mut f.out_cdf);
+            f.out_cdf = Default::default();
         }
     }
 
-    let _ = mem::take(&mut f.cur_segmap);
-    let _ = mem::take(&mut f.prev_segmap);
-    let _ = mem::take(&mut f.mvs);
-    let _ = mem::take(&mut f.seq_hdr);
-    let _ = mem::take(&mut f.frame_hdr);
+    f.cur_segmap = Default::default();
+    f.prev_segmap = Default::default();
+    f.mvs = Default::default();
+    f.seq_hdr = Default::default();
+    f.frame_hdr = Default::default();
     f.tiles.clear();
     task_thread.finished.store(true, Ordering::SeqCst);
     *task_thread.retval.try_lock().unwrap() = retval.err();
@@ -4914,7 +4933,7 @@ pub(crate) fn rav1d_decode_frame(c: &Rav1dContext, fc: &Rav1dFrameContext) -> Ra
                 res = fc.task_thread.retval.try_lock().unwrap().err_or(());
             } else {
                 res = rav1d_decode_frame_main(c, &mut f);
-                let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+                let frame_hdr = &**f.frame_hdr.as_ref().unwrap().read();
                 if res.is_ok() && frame_hdr.refresh_context != 0 && fc.task_thread.update_set.get()
                 {
                     rav1d_cdf_thread_update(
@@ -4974,14 +4993,14 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
         if error.is_some() {
             state.cached_error = mem::take(&mut *error);
             state.cached_error_props = out_delayed.p.m.clone();
-            let _ = mem::take(out_delayed);
+            *out_delayed = Default::default();
         } else if out_delayed.p.data.is_some() {
             let progress = out_delayed.progress.as_ref().unwrap()[1].load(Ordering::Relaxed);
             if (out_delayed.visible || c.output_invisible_frames) && progress != FRAME_ERROR {
                 state.out = out_delayed.clone();
                 state.event_flags |= out_delayed.flags.into();
             }
-            let _ = mem::take(out_delayed);
+            *out_delayed = Default::default();
         }
         (fc, out_delayed, Some(task_thread_lock))
     } else {
@@ -5000,22 +5019,22 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
         m: &Rav1dDataProps,
     ) {
         fc.task_thread.error.store(1, Ordering::Relaxed);
-        let _ = mem::take(&mut *fc.in_cdf.try_write().unwrap());
-        if f.frame_hdr.as_ref().unwrap().refresh_context != 0 {
-            let _ = mem::take(&mut f.out_cdf);
+        *fc.in_cdf.try_write().unwrap() = Default::default();
+        if f.frame_hdr.as_ref().unwrap().read().refresh_context != 0 {
+            f.out_cdf = Default::default();
         }
         for i in 0..7 {
             if f.refp[i].p.frame_hdr.is_some() {
-                let _ = mem::take(&mut f.refp[i]);
+                f.refp[i] = Default::default();
             }
-            let _ = mem::take(&mut f.ref_mvs[i]);
+            f.ref_mvs[i] = Default::default();
         }
-        let _ = mem::take(out);
-        let _ = mem::take(&mut f.cur);
-        let _ = mem::take(&mut f.sr_cur);
-        let _ = mem::take(&mut f.mvs);
-        let _ = mem::take(&mut f.seq_hdr);
-        let _ = mem::take(&mut f.frame_hdr);
+        *out = Default::default();
+        f.cur = Default::default();
+        f.sr_cur = Default::default();
+        f.mvs = Default::default();
+        f.seq_hdr = Default::default();
+        f.frame_hdr = Default::default();
         *cached_error_props = m.clone();
 
         f.tiles.clear();
@@ -5044,9 +5063,10 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
 
     let mut ref_coded_width = <[i32; 7]>::default();
     let frame_hdr = f.frame_hdr.as_ref().unwrap().clone();
-    if frame_hdr.frame_type.is_inter_or_switch() {
-        if frame_hdr.primary_ref_frame != RAV1D_PRIMARY_REF_NONE {
-            let pri_ref = frame_hdr.refidx[frame_hdr.primary_ref_frame as usize] as usize;
+    if frame_hdr.read().frame_type.is_inter_or_switch() {
+        if frame_hdr.read().primary_ref_frame != RAV1D_PRIMARY_REF_NONE {
+            let pri_ref =
+                frame_hdr.read().refidx[frame_hdr.read().primary_ref_frame as usize] as usize;
             if state.refs[pri_ref].p.p.data.is_none() {
                 on_error(
                     fc,
@@ -5059,17 +5079,17 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
             }
         }
         for i in 0..7 {
-            let refidx = frame_hdr.refidx[i] as usize;
+            let refidx = frame_hdr.read().refidx[i] as usize;
             if state.refs[refidx].p.p.data.is_none()
-                || (frame_hdr.size.width[0] * 2) < state.refs[refidx].p.p.p.w
-                || (frame_hdr.size.height * 2) < state.refs[refidx].p.p.p.h
-                || frame_hdr.size.width[0] > state.refs[refidx].p.p.p.w * 16
-                || frame_hdr.size.height > state.refs[refidx].p.p.p.h * 16
+                || (frame_hdr.read().size.width[0] * 2) < state.refs[refidx].p.p.p.w
+                || (frame_hdr.read().size.height * 2) < state.refs[refidx].p.p.p.h
+                || frame_hdr.read().size.width[0] > state.refs[refidx].p.p.p.w * 16
+                || frame_hdr.read().size.height > state.refs[refidx].p.p.p.h * 16
                 || f.seq_hdr.as_ref().unwrap().read().layout != state.refs[refidx].p.p.p.layout
                 || bpc != state.refs[refidx].p.p.p.bpc
             {
                 for j in 0..i {
-                    let _ = mem::take(&mut f.refp[j]);
+                    f.refp[j] = Default::default();
                 }
                 on_error(
                     fc,
@@ -5087,34 +5107,38 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
                 .frame_hdr
                 .as_ref()
                 .unwrap()
+                .read()
                 .size
                 .width[0];
-            if frame_hdr.size.width[0] != state.refs[refidx].p.p.p.w
-                || frame_hdr.size.height != state.refs[refidx].p.p.p.h
+            if frame_hdr.read().size.width[0] != state.refs[refidx].p.p.p.w
+                || frame_hdr.read().size.height != state.refs[refidx].p.p.p.h
             {
-                f.svc[i][0].scale = scale_fac(state.refs[refidx].p.p.p.w, frame_hdr.size.width[0]);
-                f.svc[i][1].scale = scale_fac(state.refs[refidx].p.p.p.h, frame_hdr.size.height);
+                f.svc[i][0].scale =
+                    scale_fac(state.refs[refidx].p.p.p.w, frame_hdr.read().size.width[0]);
+                f.svc[i][1].scale =
+                    scale_fac(state.refs[refidx].p.p.p.h, frame_hdr.read().size.height);
                 f.svc[i][0].step = f.svc[i][0].scale + 8 >> 4;
                 f.svc[i][1].step = f.svc[i][1].scale + 8 >> 4;
             } else {
                 f.svc[i][1].scale = 0;
                 f.svc[i][0].scale = f.svc[i][1].scale;
             }
-            f.gmv_warp_allowed[i] = (frame_hdr.gmv[i].r#type > Rav1dWarpedMotionType::Translation
-                && !frame_hdr.force_integer_mv
-                && !rav1d_get_shear_params(&frame_hdr.gmv[i])
+            f.gmv_warp_allowed[i] = (frame_hdr.read().gmv[i].r#type
+                > Rav1dWarpedMotionType::Translation
+                && !frame_hdr.read().force_integer_mv
+                && !rav1d_get_shear_params(&frame_hdr.read().gmv[i])
                 && f.svc[i][0].scale == 0) as u8;
         }
     }
 
     // setup entropy
-    if frame_hdr.primary_ref_frame == RAV1D_PRIMARY_REF_NONE {
-        *fc.in_cdf.try_write().unwrap() = rav1d_cdf_thread_init_static(frame_hdr.quant.yac);
+    if frame_hdr.read().primary_ref_frame == RAV1D_PRIMARY_REF_NONE {
+        *fc.in_cdf.try_write().unwrap() = rav1d_cdf_thread_init_static(frame_hdr.read().quant.yac);
     } else {
-        let pri_ref = frame_hdr.refidx[frame_hdr.primary_ref_frame as usize] as usize;
+        let pri_ref = frame_hdr.read().refidx[frame_hdr.read().primary_ref_frame as usize] as usize;
         *fc.in_cdf.try_write().unwrap() = state.cdf[pri_ref].clone();
     }
-    if frame_hdr.refresh_context != 0 {
+    if frame_hdr.read().refresh_context != 0 {
         let res = rav1d_cdf_thread_alloc(c.fc.len() > 1);
         match res {
             Err(e) => {
@@ -5172,11 +5196,15 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
     let sb128 = f.seq_hdr.as_ref().unwrap().read().sb128;
     let frame_hdr = f.frame_hdr.as_ref().unwrap().clone();
 
-    if frame_hdr.size.width[0] != frame_hdr.size.width[1] {
+    if frame_hdr.read().size.width[0] != frame_hdr.read().size.width[1] {
         // Re-borrow to allow independent borrows of fields
         let f = &mut *f;
-        let res =
-            rav1d_picture_alloc_copy(&c.logger, &mut f.cur, frame_hdr.size.width[0], &f.sr_cur.p);
+        let res = rav1d_picture_alloc_copy(
+            &c.logger,
+            &mut f.cur,
+            frame_hdr.read().size.width[0],
+            &f.sr_cur.p,
+        );
         if res.is_err() {
             on_error(fc, f, out, &mut state.cached_error_props, &state.in_0.m);
             return res;
@@ -5184,7 +5212,7 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
     } else {
         f.cur = f.sr_cur.p.clone();
     }
-    if frame_hdr.size.width[0] != frame_hdr.size.width[1] {
+    if frame_hdr.read().size.width[0] != frame_hdr.read().size.width[1] {
         f.resize_step[0] = scale_fac(f.cur.p.w, f.sr_cur.p.p.w);
         let ss_hor = (f.cur.p.layout != Rav1dPixelLayout::I444) as c_int;
         let in_cw = f.cur.p.w + ss_hor >> ss_hor;
@@ -5196,7 +5224,7 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
 
     // move f->cur into output queue
     if c.fc.len() == 1 {
-        if frame_hdr.show_frame != 0 || c.output_invisible_frames {
+        if frame_hdr.read().show_frame != 0 || c.output_invisible_frames {
             *out = f.sr_cur.clone();
             state.event_flags |= f.sr_cur.flags.into();
         }
@@ -5204,10 +5232,10 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
         *out = f.sr_cur.clone();
     }
 
-    f.w4 = frame_hdr.size.width[0] + 3 >> 2;
-    f.h4 = frame_hdr.size.height + 3 >> 2;
-    f.bw = (frame_hdr.size.width[0] + 7 >> 3) << 1;
-    f.bh = (frame_hdr.size.height + 7 >> 3) << 1;
+    f.w4 = frame_hdr.read().size.width[0] + 3 >> 2;
+    f.h4 = frame_hdr.read().size.height + 3 >> 2;
+    f.bw = (frame_hdr.read().size.width[0] + 7 >> 3) << 1;
+    f.bh = (frame_hdr.read().size.height + 7 >> 3) << 1;
     f.sb128w = f.bw + 31 >> 5;
     f.sb128h = f.bh + 31 >> 5;
     f.sb_shift = 4 + sb128 as c_int;
@@ -5217,31 +5245,32 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
     f.bitdepth_max = (1 << f.cur.p.bpc) - 1;
     fc.task_thread.error.store(0, Ordering::Relaxed);
     let uses_2pass = (c.fc.len() > 1) as c_int;
-    let cols = frame_hdr.tiling.cols;
-    let rows = frame_hdr.tiling.rows;
+    let cols = frame_hdr.read().tiling.cols;
+    let rows = frame_hdr.read().tiling.rows;
     fc.task_thread.task_counter.store(
         cols as c_int * rows as c_int + f.sbh << uses_2pass,
         Ordering::SeqCst,
     );
 
     // ref_mvs
-    if frame_hdr.frame_type.is_inter_or_switch() || frame_hdr.allow_intrabc {
+    if frame_hdr.read().frame_type.is_inter_or_switch() || frame_hdr.read().allow_intrabc {
         // TODO fallible allocation
         f.mvs = Some(
             (0..f.sb128h as usize * 16 * (f.b4_stride >> 1) as usize)
                 .map(|_| Default::default())
                 .collect(),
         );
-        if !frame_hdr.allow_intrabc {
+        if !frame_hdr.read().allow_intrabc {
             for i in 0..7 {
-                f.refpoc[i] = f.refp[i].p.frame_hdr.as_ref().unwrap().frame_offset as c_uint;
+                let frame_offset = f.refp[i].p.frame_hdr.as_ref().unwrap().read().frame_offset;
+                f.refpoc[i] = frame_offset as c_uint;
             }
         } else {
             f.refpoc.fill(0);
         }
-        if frame_hdr.use_ref_frame_mvs != 0 {
+        if frame_hdr.read().use_ref_frame_mvs != 0 {
             for i in 0..7 {
-                let refidx = frame_hdr.refidx[i] as usize;
+                let refidx = frame_hdr.read().refidx[i] as usize;
                 let ref_w = (ref_coded_width[i] + 7 >> 3) << 1;
                 let ref_h = (f.refp[i].p.p.h + 7 >> 3) << 1;
                 if ref_w == f.bw && ref_h == f.bh {
@@ -5260,19 +5289,21 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
     }
 
     // segmap
-    if frame_hdr.segmentation.enabled != 0 {
+    if frame_hdr.read().segmentation.enabled != 0 {
         // By default, the previous segmentation map is not initialised.
         f.prev_segmap = None;
 
         // We might need a previous frame's segmentation map.
         // This happens if there is either no update or a temporal update.
-        if frame_hdr.segmentation.temporal != 0 || frame_hdr.segmentation.update_map == 0 {
-            let pri_ref = frame_hdr.primary_ref_frame as usize;
+        if frame_hdr.read().segmentation.temporal != 0
+            || frame_hdr.read().segmentation.update_map == 0
+        {
+            let pri_ref = frame_hdr.read().primary_ref_frame as usize;
             assert!(pri_ref != RAV1D_PRIMARY_REF_NONE as usize);
             let ref_w = (ref_coded_width[pri_ref] + 7 >> 3) << 1;
             let ref_h = (f.refp[pri_ref].p.p.h + 7 >> 3) << 1;
             if ref_w == f.bw && ref_h == f.bh {
-                f.prev_segmap = state.refs[frame_hdr.refidx[pri_ref] as usize]
+                f.prev_segmap = state.refs[frame_hdr.read().refidx[pri_ref] as usize]
                     .segmap
                     .clone();
             }
@@ -5280,7 +5311,7 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
 
         f.cur_segmap = Some(
             match (
-                frame_hdr.segmentation.update_map != 0,
+                frame_hdr.read().segmentation.update_map != 0,
                 f.prev_segmap.as_mut(),
             ) {
                 (true, _) | (false, None) => {
@@ -5308,23 +5339,23 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
     }
 
     // update references etc.
-    let refresh_frame_flags = frame_hdr.refresh_frame_flags as c_uint;
+    let refresh_frame_flags = frame_hdr.read().refresh_frame_flags as c_uint;
     for i in 0..8 {
         if refresh_frame_flags & (1 << i) != 0 {
             if state.refs[i].p.p.frame_hdr.is_some() {
-                let _ = mem::take(&mut state.refs[i].p);
+                state.refs[i].p = Default::default();
             }
             state.refs[i].p = f.sr_cur.clone();
 
-            if frame_hdr.refresh_context != 0 {
+            if frame_hdr.read().refresh_context != 0 {
                 state.cdf[i] = f.out_cdf.clone();
             } else {
                 state.cdf[i] = fc.in_cdf.try_read().unwrap().clone();
             }
 
             state.refs[i].segmap = f.cur_segmap.clone();
-            let _ = mem::take(&mut state.refs[i].refmvs);
-            if !frame_hdr.allow_intrabc {
+            state.refs[i].refmvs = Default::default();
+            if !frame_hdr.read().allow_intrabc {
                 state.refs[i].refmvs = f.mvs.clone();
             }
             state.refs[i].refpoc = f.refpoc;
@@ -5335,15 +5366,15 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
     if c.fc.len() == 1 {
         let res = rav1d_decode_frame(c, &fc);
         if res.is_err() {
-            let _ = mem::take(&mut state.out);
+            state.out = Default::default();
             for i in 0..8 {
                 if refresh_frame_flags & (1 << i) != 0 {
                     if state.refs[i].p.p.frame_hdr.is_some() {
-                        let _ = mem::take(&mut state.refs[i].p);
+                        state.refs[i].p = Default::default();
                     }
-                    let _ = mem::take(&mut state.cdf[i]);
-                    let _ = mem::take(&mut state.refs[i].segmap);
-                    let _ = mem::take(&mut state.refs[i].refmvs);
+                    state.cdf[i] = Default::default();
+                    state.refs[i].segmap = Default::default();
+                    state.refs[i].refmvs = Default::default();
                 }
             }
             let mut f = fc.data.try_write().unwrap();

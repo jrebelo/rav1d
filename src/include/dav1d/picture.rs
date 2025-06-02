@@ -416,7 +416,7 @@ impl Drop for Rav1dPictureData {
 #[repr(C)]
 pub(crate) struct Rav1dPicture {
     pub seq_hdr: Option<Arc<RwLock<DRav1d<Rav1dSequenceHeader, Dav1dSequenceHeader>>>>,
-    pub frame_hdr: Option<Arc<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>>>,
+    pub frame_hdr: Option<Arc<RwLock<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>>>>,
     pub data: Option<Arc<Rav1dPictureData>>,
     pub stride: [ptrdiff_t; 2],
     pub p: Rav1dPictureParameters,
@@ -458,7 +458,7 @@ impl From<Dav1dPicture> for Rav1dPicture {
             // We don't `.update_rav1d()` [`Rav1dFrameHeader`] because it's meant to be read-only.
             frame_hdr: frame_hdr_ref.map(|raw| {
                 // SAFETY: `raw` came from [`RawArc::from_arc`].
-                unsafe { raw.into_arc() }
+                unsafe { raw.into_arc_lock() }
             }),
             data: data_ref.map(|raw| {
                 // SAFETY: `raw` came from [`RawArc::from_arc`].
@@ -503,7 +503,7 @@ impl From<Rav1dPicture> for Dav1dPicture {
             // [`DRav1d::from_rav1d`] is called right after [`parse_seq_hdr`].
             seq_hdr: seq_hdr.as_ref().map(|arc| (&arc.read().dav1d).into()),
             // [`DRav1d::from_rav1d`] is called in [`parse_frame_hdr`].
-            frame_hdr: frame_hdr.as_ref().map(|arc| (&arc.as_ref().dav1d).into()),
+            frame_hdr: frame_hdr.as_ref().map(|arc| (&arc.read().dav1d).into()),
             data: data
                 .as_ref()
                 .map(|arc| arc.data.each_ref().map(|data| data.as_dav1d()))
@@ -517,7 +517,7 @@ impl From<Rav1dPicture> for Dav1dPicture {
             itut_t35: Some(NonNull::new(itut_t35.dav1d.as_ptr().cast_mut()).unwrap()),
             n_itut_t35: itut_t35.len(),
             reserved: Default::default(),
-            frame_hdr_ref: frame_hdr.map(RawArc::from_arc),
+            frame_hdr_ref: frame_hdr.map(RawArc::from_arc_lock),
             seq_hdr_ref: seq_hdr.map(RawArc::from_arc_lock),
             content_light_ref: content_light.map(RawArc::from_arc),
             mastering_display_ref: mastering_display.map(RawArc::from_arc),
@@ -755,7 +755,7 @@ impl Rav1dPicAllocator {
         w: c_int,
         h: c_int,
         seq_hdr: Arc<RwLock<DRav1d<Rav1dSequenceHeader, Dav1dSequenceHeader>>>,
-        frame_hdr: Option<Arc<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>>>,
+        frame_hdr: Option<Arc<RwLock<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>>>>,
     ) -> Rav1dResult<Rav1dPicture> {
         let layout = seq_hdr.read().layout;
         let hbd = seq_hdr.read().hbd;

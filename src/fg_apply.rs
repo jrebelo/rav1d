@@ -79,7 +79,7 @@ pub(crate) fn rav1d_prep_grain<BD: BitDepth>(
     grain: &mut GrainBD<BD>,
 ) {
     let GrainBD { grain_lut, scaling } = grain;
-    let frame_hdr = &***out.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**out.frame_hdr.as_ref().unwrap().read();
     let data = &frame_hdr.film_grain.data;
     let bitdepth_max = (1 << out.p.bpc) - 1;
     let bd = BD::from_c(bitdepth_max);
@@ -131,7 +131,7 @@ pub(crate) fn rav1d_apply_grain_row<BD: BitDepth>(
     // Synthesize grain for the affected planes
     let GrainBD { grain_lut, scaling } = grain;
     let seq_hdr = &**out.seq_hdr.as_ref().unwrap().read();
-    let frame_hdr = &***out.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**out.frame_hdr.as_ref().unwrap().read();
     let data = &frame_hdr.film_grain.data;
     let in_data = &r#in.data.as_ref().unwrap().data;
     let out_data = &out.data.as_ref().unwrap().data;

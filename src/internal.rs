@@ -380,7 +380,7 @@ pub struct Rav1dState {
     pub(crate) tiles: Vec<Rav1dTileGroup>,
     pub(crate) n_tiles: c_int,
     pub(crate) seq_hdr: Option<Arc<RwLock<DRav1d<Rav1dSequenceHeader, Dav1dSequenceHeader>>>>, // TODO(kkysen) Previously pooled.
-    pub(crate) frame_hdr: Option<Arc<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>>>, // TODO(kkysen) Previously pooled.
+    pub(crate) frame_hdr: Option<Arc<RwLock<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>>>>, // TODO(kkysen) Previously pooled.
     pub(crate) content_light: Option<Arc<Rav1dContentLightLevel>>,
     pub(crate) mastering_display: Option<Arc<Rav1dMasteringDisplay>>,
 
@@ -778,7 +778,7 @@ impl Rav1dFrameContext {
         self.in_cdf.try_read().unwrap()
     }
 
-    pub fn frame_hdr(&self) -> Arc<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>> {
+    pub fn frame_hdr(&self) -> Arc<RwLock<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>>> {
         self.data
             .try_read()
             .unwrap()
@@ -793,7 +793,7 @@ impl Rav1dFrameContext {
 #[repr(C)]
 pub(crate) struct Rav1dFrameData {
     pub seq_hdr: Option<Arc<RwLock<DRav1d<Rav1dSequenceHeader, Dav1dSequenceHeader>>>>,
-    pub frame_hdr: Option<Arc<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>>>,
+    pub frame_hdr: Option<Arc<RwLock<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>>>>,
     pub refp: [Rav1dThreadPicture; 7],
     // during block coding / reconstruction
     pub cur: Rav1dPicture,
@@ -851,10 +851,6 @@ impl Rav1dFrameData {
     pub fn bd_fn(&self) -> &'static Rav1dFrameContextBdFn {
         let bpc = BPC::from_bitdepth_max(self.bitdepth_max);
         Rav1dFrameContextBdFn::get(bpc)
-    }
-
-    pub fn frame_hdr(&self) -> &Rav1dFrameHeader {
-        self.frame_hdr.as_ref().unwrap()
     }
 }
 

@@ -221,7 +221,7 @@ fn picture_alloc_with_edges(
     w: c_int,
     h: c_int,
     seq_hdr: Option<Arc<RwLock<DRav1d<Rav1dSequenceHeader, Dav1dSequenceHeader>>>>,
-    frame_hdr: Option<Arc<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>>>,
+    frame_hdr: Option<Arc<RwLock<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>>>>,
     bpc: u8,
     p_allocator: &Rav1dPicAllocator,
 ) -> Rav1dResult {
@@ -266,7 +266,7 @@ pub(crate) fn rav1d_thread_picture_alloc(
 ) -> Rav1dResult {
     let p = &mut f.sr_cur;
     let have_frame_mt = fc.len() > 1;
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap().read();
     picture_alloc_with_edges(
         logger,
         &mut p.p,

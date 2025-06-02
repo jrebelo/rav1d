@@ -615,7 +615,7 @@ fn parse_frame_size(
         for i in 0..7 {
             if gb.get_bit() {
                 let r#ref = &state.refs[refidx[i as usize] as usize].p;
-                let ref_size = &r#ref.p.frame_hdr.as_ref().ok_or(EINVAL)?.size;
+                let ref_size = &r#ref.p.frame_hdr.as_ref().ok_or(EINVAL)?.read().size;
                 let width1 = ref_size.width[1];
                 let height = ref_size.height;
                 let render_width = ref_size.render_width;
@@ -731,6 +731,7 @@ fn parse_refidx(
                         .frame_hdr
                         .as_ref()
                         .ok_or(EINVAL)?
+                        .read()
                         .frame_offset as c_int,
                     frame_offset as c_int,
                 );
@@ -832,7 +833,7 @@ fn parse_refidx(
                 .p
                 .frame_hdr
                 .as_ref()
-                .filter(|ref_frame_hdr| ref_frame_hdr.frame_id == ref_frame_id)
+                .filter(|ref_frame_hdr| ref_frame_hdr.read().frame_id == ref_frame_id)
                 .ok_or(EINVAL)?;
         }
     }
@@ -1166,6 +1167,7 @@ fn parse_segmentation(
                 .frame_hdr
                 .as_ref()
                 .ok_or(EINVAL)?
+                .read()
                 .segmentation
                 .seg_data
                 .clone()
@@ -1293,6 +1295,7 @@ fn parse_loopfilter(
                 .frame_hdr
                 .as_ref()
                 .ok_or(EINVAL)?
+                .read()
                 .loopfilter
                 .mode_ref_deltas
                 .clone();
@@ -1454,6 +1457,7 @@ fn parse_skip_mode(
                 .frame_hdr
                 .as_ref()
                 .ok_or(EINVAL)?
+                .read()
                 .frame_offset as c_uint;
 
             let diff = get_poc_diff(seqhdr.order_hint_n_bits, refpoc as c_int, poc as c_int);
@@ -1493,6 +1497,7 @@ fn parse_skip_mode(
                     .frame_hdr
                     .as_ref()
                     .ok_or(EINVAL)?
+                    .read()
                     .frame_offset as c_uint;
                 if get_poc_diff(
                     seqhdr.order_hint_n_bits,
@@ -1568,6 +1573,7 @@ fn parse_gmv(
                     .frame_hdr
                     .as_ref()
                     .ok_or(EINVAL)?
+                    .read()
                     .gmv[i]
             };
             let mat = &mut gmv.matrix;
@@ -1748,6 +1754,7 @@ fn parse_film_grain(
                     .frame_hdr
                     .as_ref()
                     .ok_or(EINVAL)?
+                    .read()
                     .film_grain
                     .data
                     .clone()
@@ -1800,7 +1807,7 @@ fn parse_frame_hdr(
                 .p
                 .frame_hdr
                 .as_ref()
-                .filter(|ref_frame_hdr| ref_frame_hdr.frame_id == frame_id)
+                .filter(|ref_frame_hdr| ref_frame_hdr.read().frame_id == frame_id)
                 .ok_or(EINVAL)?;
         } else {
             // Default initialization.
@@ -2155,14 +2162,14 @@ fn parse_obus(
     fn skip(state: &mut Rav1dState) {
         // update refs with only the headers in case we skip the frame
         for i in 0..8 {
-            if state.frame_hdr.as_ref().unwrap().refresh_frame_flags & (1 << i) != 0 {
-                let _ = mem::take(&mut state.refs[i as usize].p);
+            if state.frame_hdr.as_ref().unwrap().read().refresh_frame_flags & (1 << i) != 0 {
+                state.refs[i as usize].p = Default::default();
                 state.refs[i as usize].p.p.frame_hdr = state.frame_hdr.clone();
                 state.refs[i as usize].p.p.seq_hdr = state.seq_hdr.clone();
             }
         }
 
-        let _ = mem::take(&mut state.frame_hdr);
+        state.frame_hdr = Default::default();
         state.n_tiles = 0;
     }
 
@@ -2218,7 +2225,7 @@ fn parse_obus(
         props: &Rav1dDataProps,
         gb: &mut GetBits,
     ) -> Rav1dResult {
-        let hdr = parse_tile_hdr(&state.frame_hdr.as_ref().ok_or(EINVAL)?.tiling, gb);
+        let hdr = parse_tile_hdr(&state.frame_hdr.as_ref().ok_or(EINVAL)?.read().tiling, gb);
         // Align to the next byte boundary and check for overrun.
         gb.bytealign();
         if gb.has_error() != 0 {
@@ -2288,15 +2295,15 @@ fn parse_obus(
                     // See 7.5, `operating_parameter_info` is allowed to change in
                     // sequence headers of a single sequence.
                     state.frame_hdr = None;
-                    let _ = mem::take(&mut state.content_light);
-                    let _ = mem::take(&mut state.mastering_display);
+                    state.content_light = Default::default();
+                    state.mastering_display = Default::default();
                     for i in 0..8 {
                         if state.refs[i as usize].p.p.frame_hdr.is_some() {
-                            let _ = mem::take(&mut state.refs[i as usize].p);
+                            state.refs[i as usize].p = Default::default();
                         }
-                        let _ = mem::take(&mut state.refs[i as usize].segmap);
-                        let _ = mem::take(&mut state.refs[i as usize].refmvs);
-                        let _ = mem::take(&mut state.cdf[i]);
+                        state.refs[i as usize].segmap = Default::default();
+                        state.refs[i as usize].refmvs = Default::default();
+                        state.cdf[i] = Default::default();
                     }
                     state.frame_flags |= PictureFlags::NEW_SEQUENCE;
                 }
@@ -2358,7 +2365,12 @@ fn parse_obus(
                 }
             }
 
-            state.frame_hdr = Some(Arc::new(DRav1d::from_rav1d(frame_hdr))); // TODO(kkysen) fallible allocation
+            match &state.frame_hdr {
+                Some(s) => *s.write() = DRav1d::from_rav1d(frame_hdr),
+                None => {
+                    state.frame_hdr = Some(Arc::new(RwLock::new(DRav1d::from_rav1d(frame_hdr))))
+                }
+            }; // TODO(kkysen) fallible allocation
 
             if r#type == Some(Rav1dObuType::Frame) {
                 // This is the frame header at the start of a frame OBU.
@@ -2475,16 +2487,16 @@ fn parse_obus(
     }
 
     if let (Some(_), Some(frame_hdr)) = (state.seq_hdr.as_ref(), state.frame_hdr.as_ref()) {
-        let frame_hdr = &***frame_hdr;
-        if frame_hdr.show_existing_frame != 0 {
-            match state.refs[frame_hdr.existing_frame_idx as usize]
+        if frame_hdr.read().show_existing_frame != 0 {
+            let frame_type = state.refs[frame_hdr.read().existing_frame_idx as usize]
                 .p
                 .p
                 .frame_hdr
                 .as_ref()
                 .ok_or(EINVAL)?
-                .frame_type
-            {
+                .read()
+                .frame_type;
+            match frame_type {
                 Rav1dFrameType::Inter | Rav1dFrameType::Switch => {
                     if c.decode_frame_type > Rav1dDecodeFrameType::Reference {
                         return Ok(skip(state));
@@ -2497,7 +2509,7 @@ fn parse_obus(
                 }
                 _ => {}
             }
-            if state.refs[frame_hdr.existing_frame_idx as usize]
+            if state.refs[frame_hdr.read().existing_frame_idx as usize]
                 .p
                 .p
                 .data
@@ -2506,12 +2518,16 @@ fn parse_obus(
                 return Err(EINVAL);
             }
             if c.strict_std_compliance
-                && !state.refs[frame_hdr.existing_frame_idx as usize].p.showable
+                && !state.refs[frame_hdr.read().existing_frame_idx as usize]
+                    .p
+                    .showable
             {
                 return Err(EINVAL);
             }
             if c.fc.len() == 1 {
-                state.out = state.refs[frame_hdr.existing_frame_idx as usize].p.clone();
+                state.out = state.refs[frame_hdr.read().existing_frame_idx as usize]
+                    .p
+                    .clone();
                 rav1d_picture_copy_props(
                     &mut state.out.p,
                     state.content_light.clone(),
@@ -2520,7 +2536,7 @@ fn parse_obus(
                     Rav1dITUTT35::to_immut(mem::take(&mut state.itut_t35)),
                     props.clone(),
                 );
-                state.event_flags |= state.refs[frame_hdr.existing_frame_idx as usize]
+                state.event_flags |= state.refs[frame_hdr.read().existing_frame_idx as usize]
                     .p
                     .flags
                     .into();
@@ -2559,7 +2575,7 @@ fn parse_obus(
                 if error.is_some() {
                     state.cached_error = mem::take(error);
                     state.cached_error_props = out_delayed.p.m.clone();
-                    let _ = mem::take(out_delayed);
+                    *out_delayed = Default::default();
                 } else if out_delayed.p.data.is_some() {
                     let progress =
                         out_delayed.progress.as_ref().unwrap()[1].load(Ordering::Relaxed);
@@ -2568,9 +2584,11 @@ fn parse_obus(
                         state.out = out_delayed.clone();
                         state.event_flags |= out_delayed.flags.into();
                     }
-                    let _ = mem::take(out_delayed);
+                    *out_delayed = Default::default();
                 }
-                *out_delayed = state.refs[frame_hdr.existing_frame_idx as usize].p.clone();
+                *out_delayed = state.refs[frame_hdr.read().existing_frame_idx as usize]
+                    .p
+                    .clone();
                 out_delayed.visible = true;
                 rav1d_picture_copy_props(
                     &mut out_delayed.p,
@@ -2581,16 +2599,17 @@ fn parse_obus(
                     props.clone(),
                 );
             }
-            if state.refs[frame_hdr.existing_frame_idx as usize]
+            if state.refs[frame_hdr.read().existing_frame_idx as usize]
                 .p
                 .p
                 .frame_hdr
                 .as_ref()
                 .unwrap()
+                .read()
                 .frame_type
                 == Rav1dFrameType::Key
             {
-                let r = frame_hdr.existing_frame_idx;
+                let r = frame_hdr.read().existing_frame_idx;
                 state.refs[r as usize].p.showable = false;
                 for i in 0..8 {
                     if i == r {
@@ -2598,23 +2617,26 @@ fn parse_obus(
                     }
 
                     if state.refs[i as usize].p.p.frame_hdr.is_some() {
-                        let _ = mem::take(&mut state.refs[i as usize].p);
+                        state.refs[i as usize].p = Default::default();
                     }
                     state.refs[i as usize].p = state.refs[r as usize].p.clone();
 
                     state.cdf[i as usize] = state.cdf[r as usize].clone();
 
                     state.refs[i as usize].segmap = state.refs[r as usize].segmap.clone();
-                    let _ = mem::take(&mut state.refs[i as usize].refmvs);
+                    state.refs[i as usize].refmvs = Default::default();
                 }
             }
             state.frame_hdr = None;
-        } else if state.n_tiles == frame_hdr.tiling.cols as c_int * frame_hdr.tiling.rows as c_int {
-            match frame_hdr.frame_type {
+        } else if state.n_tiles
+            == frame_hdr.read().tiling.cols as c_int * frame_hdr.read().tiling.rows as c_int
+        {
+            let frame_type = frame_hdr.read().frame_type;
+            match frame_type {
                 Rav1dFrameType::Inter | Rav1dFrameType::Switch => {
                     if c.decode_frame_type > Rav1dDecodeFrameType::Reference
                         || c.decode_frame_type == Rav1dDecodeFrameType::Reference
-                            && frame_hdr.refresh_frame_flags == 0
+                            && frame_hdr.read().refresh_frame_flags == 0
                     {
                         return Ok(skip(state));
                     }
@@ -2622,7 +2644,7 @@ fn parse_obus(
                 Rav1dFrameType::Intra => {
                     if c.decode_frame_type > Rav1dDecodeFrameType::Intra
                         || c.decode_frame_type == Rav1dDecodeFrameType::Reference
-                            && frame_hdr.refresh_frame_flags == 0
+                            && frame_hdr.read().refresh_frame_flags == 0
                     {
                         return Ok(skip(state));
                     }
