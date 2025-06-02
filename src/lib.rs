@@ -1002,7 +1002,7 @@ pub unsafe extern "C" fn dav1d_data_create(buf: Option<NonNull<Dav1dData>>, sz: 
         let ptr = data
             .data
             .map(|ptr| ptr.as_ptr())
-            .unwrap_or_else(prtr::null_mut);
+            .unwrap_or_else(ptr::null_mut);
         // SAFETY: `buf` is safe to write to.
         unsafe { buf.as_ptr().write(data) };
         Ok(ptr)
