@@ -550,7 +550,7 @@ fn output_image(c: &Rav1dContext, state: &mut Rav1dState, out: &mut Rav1dPicture
     } else {
         res = rav1d_apply_grain(c, out, &r#in.p);
     }
-    let _ = mem::take(r#in);
+    *r#in = Default::default();
 
     if use_cache && state.out.p.data.is_some() {
         state.cache = mem::take(&mut state.out);
@@ -982,11 +982,10 @@ pub unsafe extern "C" fn dav1d_picture_unref(p: Option<NonNull<Dav1dPicture>>) {
     };
     // SAFETY: `p` is safe to read from.
     let p_c = unsafe { p.as_ptr().read() };
-    let mut p_rust = p_c.to::<Rav1dPicture>();
-    let _ = mem::take(&mut p_rust);
-    let p_c = p_rust.into();
+    let p_rust = p_c.to::<Rav1dPicture>();
+    mem::drop(p_rust);
     // SAFETY: `p` is safe to write to.
-    unsafe { p.as_ptr().write(p_c) };
+    unsafe { p.as_ptr().write(Default::default()) };
 }
 
 /// # Safety
@@ -1003,7 +1002,7 @@ pub unsafe extern "C" fn dav1d_data_create(buf: Option<NonNull<Dav1dData>>, sz: 
         let ptr = data
             .data
             .map(|ptr| ptr.as_ptr())
-            .unwrap_or_else(ptr::null_mut);
+            .unwrap_or_else(prtr::null_mut);
         // SAFETY: `buf` is safe to write to.
         unsafe { buf.as_ptr().write(data) };
         Ok(ptr)
