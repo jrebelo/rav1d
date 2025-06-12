@@ -53,12 +53,12 @@ use crate::include::dav1d::headers::Rav1dSegmentationDataSet;
 use crate::include::dav1d::headers::Rav1dTransferCharacteristics;
 use crate::include::dav1d::headers::Rav1dWarpedMotionParams;
 use crate::include::dav1d::headers::Rav1dWarpedMotionType;
+use crate::include::dav1d::headers::DAV1D_MAX_CDEF_STRENGTHS;
 use crate::include::dav1d::headers::DAV1D_MAX_OPERATING_POINTS;
 use crate::include::dav1d::headers::DAV1D_MAX_TILE_COLS;
 use crate::include::dav1d::headers::DAV1D_MAX_TILE_ROWS;
+use crate::include::dav1d::headers::DAV1D_PRIMARY_REF_NONE;
 use crate::include::dav1d::headers::DAV1D_REFS_PER_FRAME;
-use crate::include::dav1d::headers::RAV1D_MAX_CDEF_STRENGTHS;
-use crate::include::dav1d::headers::RAV1D_PRIMARY_REF_NONE;
 use crate::internal::Rav1dContext;
 use crate::internal::Rav1dState;
 use crate::internal::Rav1dTileGroup;
@@ -1142,7 +1142,7 @@ fn parse_segmentation(
     let temporal;
     let update_data;
     let seg_data = if enabled != 0 {
-        if primary_ref_frame == RAV1D_PRIMARY_REF_NONE {
+        if primary_ref_frame == DAV1D_PRIMARY_REF_NONE {
             update_map = 1;
             temporal = 0;
             update_data = 1;
@@ -1161,7 +1161,7 @@ fn parse_segmentation(
         } else {
             // segmentation.update_data was false so we should copy
             // segmentation data from the reference frame.
-            assert!(primary_ref_frame != RAV1D_PRIMARY_REF_NONE);
+            assert!(primary_ref_frame != DAV1D_PRIMARY_REF_NONE);
             let pri_ref = refidx[primary_ref_frame as usize];
             state.refs[pri_ref as usize]
                 .p
@@ -1286,7 +1286,7 @@ fn parse_loopfilter(
         }
         sharpness = gb.get_bits(3) as u8;
 
-        if primary_ref_frame == RAV1D_PRIMARY_REF_NONE {
+        if primary_ref_frame == DAV1D_PRIMARY_REF_NONE {
             mode_ref_deltas = DEFAULT_MODE_REF_DELTAS.clone();
         } else {
             let r#ref = refidx[primary_ref_frame as usize];
@@ -1341,8 +1341,8 @@ fn parse_cdef(
 ) -> Dav1dFrameHeaderCdef {
     let damping;
     let n_bits;
-    let mut y_strength = [0; RAV1D_MAX_CDEF_STRENGTHS];
-    let mut uv_strength = [0; RAV1D_MAX_CDEF_STRENGTHS];
+    let mut y_strength = [0; DAV1D_MAX_CDEF_STRENGTHS];
+    let mut uv_strength = [0; DAV1D_MAX_CDEF_STRENGTHS];
     if !all_lossless && seqhdr.cdef != 0 && !allow_intrabc {
         damping = gb.get_bits(2) as u8 + 3;
         n_bits = gb.get_bits(2) as u8;
@@ -1561,7 +1561,7 @@ fn parse_gmv(
             }
 
             let default_gmv = Default::default();
-            let ref_gmv = if primary_ref_frame == RAV1D_PRIMARY_REF_NONE {
+            let ref_gmv = if primary_ref_frame == DAV1D_PRIMARY_REF_NONE {
                 &default_gmv
             } else {
                 let pri_ref = refidx[primary_ref_frame as usize];
@@ -1891,7 +1891,7 @@ fn parse_frame_hdr(
     let primary_ref_frame = if error_resilient_mode == 0 && frame_type.is_inter_or_switch() {
         gb.get_bits(3) as u8
     } else {
-        RAV1D_PRIMARY_REF_NONE
+        DAV1D_PRIMARY_REF_NONE
     };
 
     let buffer_removal_time_present;

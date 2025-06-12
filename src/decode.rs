@@ -58,7 +58,7 @@ use crate::include::dav1d::headers::Rav1dPixelLayout;
 use crate::include::dav1d::headers::Rav1dWarpedMotionParams;
 use crate::include::dav1d::headers::Rav1dWarpedMotionType;
 use crate::include::dav1d::headers::SgrIdx;
-use crate::include::dav1d::headers::RAV1D_PRIMARY_REF_NONE;
+use crate::include::dav1d::headers::DAV1D_PRIMARY_REF_NONE;
 use crate::include::dav1d::picture::Rav1dPicture;
 use crate::internal::Bxy;
 use crate::internal::Rav1dBitDepthDSPContext;
@@ -876,7 +876,7 @@ fn get_prev_frame_segid(
     ref_seg_map: &DisjointMutSlice<SegmentId>,
     stride: ptrdiff_t,
 ) -> SegmentId {
-    assert!(frame_hdr.primary_ref_frame != RAV1D_PRIMARY_REF_NONE);
+    assert!(frame_hdr.primary_ref_frame != DAV1D_PRIMARY_REF_NONE);
 
     let mut prev_seg_id = SegmentId::max();
     for y in 0..h4 as usize {
@@ -4045,7 +4045,8 @@ fn read_restoration_info(
             }
         }
         Dav1dRestorationType::SgrProj(_) => {
-            let sgr_idx = SgrIdx::from_repr(rav1d_msac_decode_bools(&mut ts_c.msac, 4) as u8).unwrap();
+            let sgr_idx =
+                SgrIdx::from_repr(rav1d_msac_decode_bools(&mut ts_c.msac, 4) as u8).unwrap();
             let sgr_params = &DAV1D_SGR_PARAMS[sgr_idx as usize];
             lr.r#type = Dav1dRestorationType::SgrProj(sgr_idx);
             lr.sgr_weights[0] = if sgr_params[0] != 0 {
@@ -5037,7 +5038,7 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
     let mut ref_coded_width = <[i32; 7]>::default();
     let frame_hdr = f.frame_hdr.as_ref().unwrap().clone();
     if frame_hdr.frame_type.is_inter_or_switch() {
-        if frame_hdr.primary_ref_frame != RAV1D_PRIMARY_REF_NONE {
+        if frame_hdr.primary_ref_frame != DAV1D_PRIMARY_REF_NONE {
             let pri_ref = frame_hdr.refidx[frame_hdr.primary_ref_frame as usize] as usize;
             if state.refs[pri_ref].p.p.data.is_none() {
                 on_error(
@@ -5100,7 +5101,7 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
     }
 
     // setup entropy
-    if frame_hdr.primary_ref_frame == RAV1D_PRIMARY_REF_NONE {
+    if frame_hdr.primary_ref_frame == DAV1D_PRIMARY_REF_NONE {
         *fc.in_cdf.try_write().unwrap() = rav1d_cdf_thread_init_static(frame_hdr.quant.yac);
     } else {
         let pri_ref = frame_hdr.refidx[frame_hdr.primary_ref_frame as usize] as usize;
@@ -5260,7 +5261,7 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
         // This happens if there is either no update or a temporal update.
         if frame_hdr.segmentation.temporal != 0 || frame_hdr.segmentation.update_map == 0 {
             let pri_ref = frame_hdr.primary_ref_frame as usize;
-            assert!(pri_ref != RAV1D_PRIMARY_REF_NONE as usize);
+            assert!(pri_ref != DAV1D_PRIMARY_REF_NONE as usize);
             let ref_w = (ref_coded_width[pri_ref] + 7 >> 3) << 1;
             let ref_h = (f.refp[pri_ref].p.p.h + 7 >> 3) << 1;
             if ref_w == f.bw && ref_h == f.bh {

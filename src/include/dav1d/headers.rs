@@ -67,9 +67,6 @@ pub const DAV1D_PRIMARY_REF_NONE: u8 = 7;
 pub const DAV1D_REFS_PER_FRAME: usize = 7;
 pub const DAV1D_TOTAL_REFS_PER_FRAME: usize = DAV1D_REFS_PER_FRAME + 1;
 
-pub(crate) const RAV1D_MAX_CDEF_STRENGTHS: usize = DAV1D_MAX_CDEF_STRENGTHS;
-pub(crate) const RAV1D_PRIMARY_REF_NONE: u8 = DAV1D_PRIMARY_REF_NONE;
-
 pub type Dav1dObuType = c_uint;
 pub const DAV1D_OBU_PADDING: Dav1dObuType = Rav1dObuType::Padding as Dav1dObuType;
 pub const DAV1D_OBU_REDUNDANT_FRAME_HDR: Dav1dObuType =
