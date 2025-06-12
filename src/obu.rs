@@ -20,6 +20,7 @@ use crate::include::dav1d::headers::Dav1dFrameHeaderDeltaLF;
 use crate::include::dav1d::headers::Dav1dFrameHeaderDeltaQ;
 use crate::include::dav1d::headers::Dav1dITUTT35;
 use crate::include::dav1d::headers::Dav1dLoopfilterModeRefDeltas;
+use crate::include::dav1d::headers::Dav1dMasteringDisplay;
 use crate::include::dav1d::headers::Dav1dSequenceHeader;
 use crate::include::dav1d::headers::Dav1dSequenceHeaderOperatingParameterInfo;
 use crate::include::dav1d::headers::Dav1dSequenceHeaderOperatingPoint;
@@ -42,7 +43,6 @@ use crate::include::dav1d::headers::Rav1dFrameHeaderTiling;
 use crate::include::dav1d::headers::Rav1dFrameSize;
 use crate::include::dav1d::headers::Rav1dFrameSkipMode;
 use crate::include::dav1d::headers::Rav1dFrameType;
-use crate::include::dav1d::headers::Rav1dMasteringDisplay;
 use crate::include::dav1d::headers::Rav1dMatrixCoefficients;
 use crate::include::dav1d::headers::Rav1dObuType;
 use crate::include::dav1d::headers::Rav1dPixelLayout;
@@ -2411,7 +2411,7 @@ fn parse_obus(
                     debug.log(&gb, format_args!("min-luminance: {min_luminance}"));
                     check_trailing_bits(gb, c.strict_std_compliance)?;
 
-                    state.mastering_display = Some(Arc::new(Rav1dMasteringDisplay {
+                    state.mastering_display = Some(Arc::new(Dav1dMasteringDisplay {
                         primaries,
                         white_point,
                         max_luminance,

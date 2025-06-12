@@ -763,14 +763,12 @@ pub struct Dav1dContentLightLevel {
 }
 
 #[repr(C)]
-pub struct Rav1dMasteringDisplay {
+pub struct Dav1dMasteringDisplay {
     pub primaries: [[u16; 2]; 3],
     pub white_point: [u16; 2],
     pub max_luminance: u32,
     pub min_luminance: u32,
 }
-
-pub type Dav1dMasteringDisplay = Rav1dMasteringDisplay;
 
 /// An immutable ptr to [`Rav1dITUTT35::payload`].
 ///

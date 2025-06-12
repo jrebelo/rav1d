@@ -28,9 +28,9 @@ use crate::include::dav1d::headers::DRav1d;
 use crate::include::dav1d::headers::Dav1dContentLightLevel;
 use crate::include::dav1d::headers::Dav1dFrameHeader;
 use crate::include::dav1d::headers::Dav1dITUTT35;
+use crate::include::dav1d::headers::Dav1dMasteringDisplay;
 use crate::include::dav1d::headers::Dav1dSequenceHeader;
 use crate::include::dav1d::headers::Rav1dFrameHeader;
-use crate::include::dav1d::headers::Rav1dMasteringDisplay;
 use crate::include::dav1d::headers::Rav1dWarpedMotionParams;
 use crate::include::dav1d::picture::Rav1dPicAllocator;
 use crate::include::dav1d::picture::Rav1dPicture;
@@ -381,7 +381,7 @@ pub struct Rav1dState {
     pub(crate) seq_hdr: Option<Arc<Dav1dSequenceHeader>>, // TODO(kkysen) Previously pooled.
     pub(crate) frame_hdr: Option<Arc<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>>>, // TODO(kkysen) Previously pooled.
     pub(crate) content_light: Option<Arc<Dav1dContentLightLevel>>,
-    pub(crate) mastering_display: Option<Arc<Rav1dMasteringDisplay>>,
+    pub(crate) mastering_display: Option<Arc<Dav1dMasteringDisplay>>,
 
     /// This is ref-counted in C, but since we first accumulate the `Vec<Rav1dITUTT35>`
     /// during [`parse_obus`] and then convert to an [`Arc`] in [`Rav1dITUTT35::to_immut`],
