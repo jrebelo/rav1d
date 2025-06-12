@@ -1881,32 +1881,11 @@ impl From<Rav1dFrameHeaderSegmentation> for Dav1dFrameHeaderSegmentation {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[repr(C)]
 pub struct Dav1dFrameHeaderDeltaQ {
     pub present: u8,
     pub res_log2: u8,
-}
-
-#[derive(Clone, Default)]
-#[repr(C)]
-pub struct Rav1dFrameHeaderDeltaQ {
-    pub present: u8,
-    pub res_log2: u8,
-}
-
-impl From<Dav1dFrameHeaderDeltaQ> for Rav1dFrameHeaderDeltaQ {
-    fn from(value: Dav1dFrameHeaderDeltaQ) -> Self {
-        let Dav1dFrameHeaderDeltaQ { present, res_log2 } = value;
-        Self { present, res_log2 }
-    }
-}
-
-impl From<Rav1dFrameHeaderDeltaQ> for Dav1dFrameHeaderDeltaQ {
-    fn from(value: Rav1dFrameHeaderDeltaQ) -> Self {
-        let Rav1dFrameHeaderDeltaQ { present, res_log2 } = value;
-        Self { present, res_log2 }
-    }
 }
 
 #[derive(Clone)]
@@ -1965,7 +1944,7 @@ pub struct Dav1dFrameHeaderDelta {
 #[derive(Clone, Default)]
 #[repr(C)]
 pub struct Rav1dFrameHeaderDelta {
-    pub q: Rav1dFrameHeaderDeltaQ,
+    pub q: Dav1dFrameHeaderDeltaQ,
     pub lf: Rav1dFrameHeaderDeltaLF,
 }
 

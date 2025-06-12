@@ -14,6 +14,7 @@ use crate::include::dav1d::common::Rav1dDataProps;
 use crate::include::dav1d::data::Rav1dData;
 use crate::include::dav1d::dav1d::Rav1dDecodeFrameType;
 use crate::include::dav1d::headers::DRav1d;
+use crate::include::dav1d::headers::Dav1dFrameHeaderDeltaQ;
 use crate::include::dav1d::headers::Dav1dSequenceHeader;
 use crate::include::dav1d::headers::Dav1dSequenceHeaderOperatingParameterInfo;
 use crate::include::dav1d::headers::Dav1dSequenceHeaderOperatingPoint;
@@ -27,7 +28,6 @@ use crate::include::dav1d::headers::Rav1dFrameHeader;
 use crate::include::dav1d::headers::Rav1dFrameHeaderCdef;
 use crate::include::dav1d::headers::Rav1dFrameHeaderDelta;
 use crate::include::dav1d::headers::Rav1dFrameHeaderDeltaLF;
-use crate::include::dav1d::headers::Rav1dFrameHeaderDeltaQ;
 use crate::include::dav1d::headers::Rav1dFrameHeaderFilmGrain;
 use crate::include::dav1d::headers::Rav1dFrameHeaderLoopFilter;
 use crate::include::dav1d::headers::Rav1dFrameHeaderOperatingPoint;
@@ -1222,7 +1222,7 @@ fn parse_delta(
         } else {
             0
         };
-        Rav1dFrameHeaderDeltaQ { present, res_log2 }
+        Dav1dFrameHeaderDeltaQ { present, res_log2 }
     };
     let lf = {
         let present = (q.present != 0 && !allow_intrabc && gb.get_bit()) as u8;
