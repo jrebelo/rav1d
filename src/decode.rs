@@ -1408,7 +1408,7 @@ fn decode_b(
     if seg
         .map(|seg| seg.globalmv == 0 && seg.r#ref == -1 && seg.skip == 0)
         .unwrap_or(true)
-        && frame_hdr.skip_mode.enabled != 0
+        && frame_hdr.skip_mode_enabled != 0
         && cmp::min(bw4, bh4) > 1
     {
         let smctx = *ta.skip_mode.index(bx4 as usize) + *t.l.skip_mode.index(by4 as usize);
@@ -2245,8 +2245,8 @@ fn decode_b(
             interintra_type,
         } = if b.skip_mode != 0 {
             let r#ref = [
-                frame_hdr.skip_mode.refs[0] as i8,
-                frame_hdr.skip_mode.refs[1] as i8,
+                frame_hdr.skip_mode_refs[0] as i8,
+                frame_hdr.skip_mode_refs[1] as i8,
             ];
             let comp_type = CompInterType::Avg;
             let inter_mode = NEARESTMV_NEARESTMV;

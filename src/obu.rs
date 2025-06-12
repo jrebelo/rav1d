@@ -15,6 +15,7 @@ use crate::include::dav1d::data::Rav1dData;
 use crate::include::dav1d::dav1d::Rav1dDecodeFrameType;
 use crate::include::dav1d::headers::DRav1d;
 use crate::include::dav1d::headers::Dav1dContentLightLevel;
+use crate::include::dav1d::headers::Dav1dFrameHeaderCdef;
 use crate::include::dav1d::headers::Dav1dFrameHeaderDelta;
 use crate::include::dav1d::headers::Dav1dFrameHeaderDeltaLF;
 use crate::include::dav1d::headers::Dav1dFrameHeaderDeltaQ;
@@ -31,7 +32,6 @@ use crate::include::dav1d::headers::Rav1dColorPrimaries;
 use crate::include::dav1d::headers::Rav1dFilmGrainData;
 use crate::include::dav1d::headers::Rav1dFilterMode;
 use crate::include::dav1d::headers::Rav1dFrameHeader;
-use crate::include::dav1d::headers::Rav1dFrameHeaderCdef;
 use crate::include::dav1d::headers::Rav1dFrameHeaderFilmGrain;
 use crate::include::dav1d::headers::Rav1dFrameHeaderLoopFilter;
 use crate::include::dav1d::headers::Rav1dFrameHeaderOperatingPoint;
@@ -41,7 +41,6 @@ use crate::include::dav1d::headers::Rav1dFrameHeaderSegmentation;
 use crate::include::dav1d::headers::Rav1dFrameHeaderSuperRes;
 use crate::include::dav1d::headers::Rav1dFrameHeaderTiling;
 use crate::include::dav1d::headers::Rav1dFrameSize;
-use crate::include::dav1d::headers::Rav1dFrameSkipMode;
 use crate::include::dav1d::headers::Rav1dFrameType;
 use crate::include::dav1d::headers::Rav1dMatrixCoefficients;
 use crate::include::dav1d::headers::Rav1dObuType;
@@ -78,6 +77,14 @@ use std::fmt;
 use std::mem;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
+
+#[derive(Clone, Default)]
+#[repr(C)]
+struct Rav1dFrameSkipMode {
+    pub allowed: u8,
+    pub enabled: u8,
+    pub refs: [i8; 2],
+}
 
 struct Debug {
     enabled: bool,
@@ -1332,7 +1339,7 @@ fn parse_cdef(
     allow_intrabc: bool,
     debug: &Debug,
     gb: &mut GetBits,
-) -> Rav1dFrameHeaderCdef {
+) -> Dav1dFrameHeaderCdef {
     let damping;
     let n_bits;
     let mut y_strength = [0; RAV1D_MAX_CDEF_STRENGTHS];
@@ -1355,7 +1362,7 @@ fn parse_cdef(
         uv_strength[0] = 0;
     }
     debug.post(gb, "cdef");
-    Rav1dFrameHeaderCdef {
+    Dav1dFrameHeaderCdef {
         damping,
         n_bits,
         y_strength,
@@ -2114,7 +2121,9 @@ fn parse_frame_hdr(
         restoration,
         txfm_mode,
         switchable_comp_refs,
-        skip_mode,
+        skip_mode_allowed: skip_mode.allowed,
+        skip_mode_enabled: skip_mode.enabled,
+        skip_mode_refs: skip_mode.refs,
         warp_motion,
         reduced_txtp_set,
         gmv,

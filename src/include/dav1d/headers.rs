@@ -1805,56 +1805,13 @@ impl From<Rav1dFrameHeaderLoopFilter> for Dav1dFrameHeaderLoopFilter {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[repr(C)]
 pub struct Dav1dFrameHeaderCdef {
     pub damping: u8,
     pub n_bits: u8,
     pub y_strength: [u8; DAV1D_MAX_CDEF_STRENGTHS],
     pub uv_strength: [u8; DAV1D_MAX_CDEF_STRENGTHS],
-}
-
-#[derive(Clone, Default)]
-#[repr(C)]
-pub struct Rav1dFrameHeaderCdef {
-    pub damping: u8,
-    pub n_bits: u8,
-    pub y_strength: [u8; RAV1D_MAX_CDEF_STRENGTHS],
-    pub uv_strength: [u8; RAV1D_MAX_CDEF_STRENGTHS],
-}
-
-impl From<Dav1dFrameHeaderCdef> for Rav1dFrameHeaderCdef {
-    fn from(value: Dav1dFrameHeaderCdef) -> Self {
-        let Dav1dFrameHeaderCdef {
-            damping,
-            n_bits,
-            y_strength,
-            uv_strength,
-        } = value;
-        Self {
-            damping,
-            n_bits,
-            y_strength,
-            uv_strength,
-        }
-    }
-}
-
-impl From<Rav1dFrameHeaderCdef> for Dav1dFrameHeaderCdef {
-    fn from(value: Rav1dFrameHeaderCdef) -> Self {
-        let Rav1dFrameHeaderCdef {
-            damping,
-            n_bits,
-            y_strength,
-            uv_strength,
-        } = value;
-        Self {
-            damping,
-            n_bits,
-            y_strength,
-            uv_strength,
-        }
-    }
 }
 
 #[derive(Clone)]
@@ -1959,14 +1916,6 @@ pub struct Rav1dFrameSize {
 
 #[derive(Clone, Default)]
 #[repr(C)]
-pub struct Rav1dFrameSkipMode {
-    pub allowed: u8,
-    pub enabled: u8,
-    pub refs: [i8; 2],
-}
-
-#[derive(Clone, Default)]
-#[repr(C)]
 pub struct Rav1dFrameHeader {
     pub size: Rav1dFrameSize,
     pub film_grain: Rav1dFrameHeaderFilmGrain,
@@ -2003,11 +1952,13 @@ pub struct Rav1dFrameHeader {
     pub delta: Dav1dFrameHeaderDelta,
     pub all_lossless: bool,
     pub loopfilter: Rav1dFrameHeaderLoopFilter,
-    pub cdef: Rav1dFrameHeaderCdef,
+    pub cdef: Dav1dFrameHeaderCdef,
     pub restoration: Rav1dFrameHeaderRestoration,
     pub txfm_mode: Rav1dTxfmMode,
     pub switchable_comp_refs: u8,
-    pub skip_mode: Rav1dFrameSkipMode,
+    pub skip_mode_allowed: u8,
+    pub skip_mode_enabled: u8,
+    pub skip_mode_refs: [i8; 2],
     pub warp_motion: u8,
     pub reduced_txtp_set: u8,
     pub gmv: [Rav1dWarpedMotionParams; RAV1D_REFS_PER_FRAME],
@@ -2114,11 +2065,9 @@ impl From<Dav1dFrameHeader> for Rav1dFrameHeader {
             restoration: restoration.into(),
             txfm_mode: txfm_mode.try_into().unwrap(),
             switchable_comp_refs,
-            skip_mode: Rav1dFrameSkipMode {
-                allowed: skip_mode_allowed,
-                enabled: skip_mode_enabled,
-                refs: skip_mode_refs,
-            },
+            skip_mode_allowed,
+            skip_mode_enabled,
+            skip_mode_refs,
             warp_motion,
             reduced_txtp_set,
             gmv: gmv.map(|c| c.try_into().unwrap()),
@@ -2176,12 +2125,9 @@ impl From<Rav1dFrameHeader> for Dav1dFrameHeader {
             restoration,
             txfm_mode,
             switchable_comp_refs,
-            skip_mode:
-                Rav1dFrameSkipMode {
-                    allowed: skip_mode_allowed,
-                    enabled: skip_mode_enabled,
-                    refs: skip_mode_refs,
-                },
+            skip_mode_allowed,
+            skip_mode_enabled,
+            skip_mode_refs,
             warp_motion,
             reduced_txtp_set,
             gmv,
