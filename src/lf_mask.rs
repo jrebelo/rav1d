@@ -4,8 +4,8 @@ use crate::ctx::CaseSet;
 use crate::disjoint_mut::DisjointMut;
 use crate::include::common::intops::clip;
 use crate::include::common::intops::iclip;
+use crate::include::dav1d::headers::Dav1dLoopfilterModeRefDeltas;
 use crate::include::dav1d::headers::Rav1dFrameHeader;
-use crate::include::dav1d::headers::Rav1dLoopfilterModeRefDeltas;
 use crate::include::dav1d::headers::Rav1dPixelLayout;
 use crate::include::dav1d::headers::Rav1dRestorationType;
 use crate::internal::Bxy;
@@ -649,7 +649,7 @@ fn calc_lf_value(
     base_lvl: u8,
     lf_delta: i8,
     seg_delta: i8,
-    mr_delta: Option<&Rav1dLoopfilterModeRefDeltas>,
+    mr_delta: Option<&Dav1dLoopfilterModeRefDeltas>,
 ) {
     let base = iclip(
         iclip(base_lvl as c_int + lf_delta as c_int, 0, 63) + seg_delta as c_int,
@@ -677,7 +677,7 @@ fn calc_lf_value_chroma(
     base_lvl: u8,
     lf_delta: i8,
     seg_delta: i8,
-    mr_delta: Option<&Rav1dLoopfilterModeRefDeltas>,
+    mr_delta: Option<&Dav1dLoopfilterModeRefDeltas>,
 ) {
     if base_lvl == 0 {
         *lflvl_values = Default::default();

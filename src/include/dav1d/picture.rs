@@ -15,11 +15,11 @@ use crate::include::common::validate::validate_input;
 use crate::include::dav1d::common::Dav1dDataProps;
 use crate::include::dav1d::common::Rav1dDataProps;
 use crate::include::dav1d::headers::DRav1d;
+use crate::include::dav1d::headers::Dav1dContentLightLevel;
 use crate::include::dav1d::headers::Dav1dFrameHeader;
 use crate::include::dav1d::headers::Dav1dITUTT35;
 use crate::include::dav1d::headers::Dav1dPixelLayout;
 use crate::include::dav1d::headers::Dav1dSequenceHeader;
-use crate::include::dav1d::headers::Rav1dContentLightLevel;
 use crate::include::dav1d::headers::Rav1dFrameHeader;
 use crate::include::dav1d::headers::Rav1dITUTT35;
 use crate::include::dav1d::headers::Rav1dMasteringDisplay;
@@ -97,14 +97,14 @@ pub struct Dav1dPicture {
     pub stride: [ptrdiff_t; 2],
     pub p: Dav1dPictureParameters,
     pub m: Dav1dDataProps,
-    pub content_light: Option<NonNull<Rav1dContentLightLevel>>,
+    pub content_light: Option<NonNull<Dav1dContentLightLevel>>,
     pub mastering_display: Option<NonNull<Rav1dMasteringDisplay>>,
     pub itut_t35: Option<NonNull<Dav1dITUTT35>>,
     pub n_itut_t35: usize,
     pub reserved: [uintptr_t; 4],
     pub frame_hdr_ref: Option<RawArc<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>>>, // opaque, so we can change this
     pub seq_hdr_ref: Option<RawArc<Dav1dSequenceHeader>>, // opaque, so we can change this
-    pub content_light_ref: Option<RawArc<Rav1dContentLightLevel>>, // opaque, so we can change this
+    pub content_light_ref: Option<RawArc<Dav1dContentLightLevel>>, // opaque, so we can change this
     pub mastering_display_ref: Option<RawArc<Rav1dMasteringDisplay>>, // opaque, so we can change this
     pub itut_t35_ref: Option<RawArc<DRav1d<Box<[Rav1dITUTT35]>, Box<[Dav1dITUTT35]>>>>, // opaque, so we can change this
     pub reserved_ref: [uintptr_t; 4],
@@ -419,7 +419,7 @@ pub(crate) struct Rav1dPicture {
     pub stride: [ptrdiff_t; 2],
     pub p: Rav1dPictureParameters,
     pub m: Rav1dDataProps,
-    pub content_light: Option<Arc<Rav1dContentLightLevel>>,
+    pub content_light: Option<Arc<Dav1dContentLightLevel>>,
     pub mastering_display: Option<Arc<Rav1dMasteringDisplay>>,
     pub itut_t35: Arc<DRav1d<Box<[Rav1dITUTT35]>, Box<[Dav1dITUTT35]>>>,
 }

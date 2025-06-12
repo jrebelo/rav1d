@@ -6,10 +6,10 @@ use crate::error::Rav1dResult;
 use crate::include::dav1d::common::Rav1dDataProps;
 use crate::include::dav1d::dav1d::Rav1dEventFlags;
 use crate::include::dav1d::headers::DRav1d;
+use crate::include::dav1d::headers::Dav1dContentLightLevel;
 use crate::include::dav1d::headers::Dav1dFrameHeader;
 use crate::include::dav1d::headers::Dav1dITUTT35;
 use crate::include::dav1d::headers::Dav1dSequenceHeader;
-use crate::include::dav1d::headers::Rav1dContentLightLevel;
 use crate::include::dav1d::headers::Rav1dFrameHeader;
 use crate::include::dav1d::headers::Rav1dITUTT35;
 use crate::include::dav1d::headers::Rav1dMasteringDisplay;
@@ -236,7 +236,7 @@ fn picture_alloc_with_edges(
 
 pub fn rav1d_picture_copy_props(
     p: &mut Rav1dPicture,
-    content_light: Option<Arc<Rav1dContentLightLevel>>,
+    content_light: Option<Arc<Dav1dContentLightLevel>>,
     mastering_display: Option<Arc<Rav1dMasteringDisplay>>,
     itut_t35: Arc<DRav1d<Box<[Rav1dITUTT35]>, Box<[Dav1dITUTT35]>>>,
     props: Rav1dDataProps,
@@ -253,7 +253,7 @@ pub(crate) fn rav1d_thread_picture_alloc(
     fc: &Box<[Rav1dFrameContext]>,
     logger: &Option<Rav1dLogger>,
     allocator: &Rav1dPicAllocator,
-    content_light: Option<Arc<Rav1dContentLightLevel>>,
+    content_light: Option<Arc<Dav1dContentLightLevel>>,
     mastering_display: Option<Arc<Rav1dMasteringDisplay>>,
     output_invisible_frames: bool,
     max_spatial_id: u8,

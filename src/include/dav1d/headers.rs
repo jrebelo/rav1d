@@ -75,7 +75,6 @@ pub(crate) const RAV1D_MAX_TILE_ROWS: usize = DAV1D_MAX_TILE_ROWS;
 pub(crate) const _RAV1D_NUM_REF_FRAMES: usize = DAV1D_NUM_REF_FRAMES;
 pub(crate) const RAV1D_PRIMARY_REF_NONE: u8 = DAV1D_PRIMARY_REF_NONE;
 pub(crate) const RAV1D_REFS_PER_FRAME: usize = DAV1D_REFS_PER_FRAME;
-pub(crate) const RAV1D_TOTAL_REFS_PER_FRAME: usize = DAV1D_TOTAL_REFS_PER_FRAME;
 
 pub type Dav1dObuType = c_uint;
 pub const DAV1D_OBU_PADDING: Dav1dObuType = Rav1dObuType::Padding as Dav1dObuType;
@@ -759,12 +758,10 @@ impl TryFrom<Dav1dChromaSamplePosition> for Rav1dChromaSamplePosition {
 }
 
 #[repr(C)]
-pub struct Rav1dContentLightLevel {
+pub struct Dav1dContentLightLevel {
     pub max_content_light_level: u16,
     pub max_frame_average_light_level: u16,
 }
-
-pub type Dav1dContentLightLevel = Rav1dContentLightLevel;
 
 #[repr(C)]
 pub struct Rav1dMasteringDisplay {
@@ -1269,44 +1266,11 @@ impl From<Rav1dSegmentationDataSet> for Dav1dSegmentationDataSet {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[repr(C)]
 pub struct Dav1dLoopfilterModeRefDeltas {
     pub mode_delta: [i8; 2],
     pub ref_delta: [i8; DAV1D_TOTAL_REFS_PER_FRAME],
-}
-
-#[derive(Clone, Default)]
-#[repr(C)]
-pub struct Rav1dLoopfilterModeRefDeltas {
-    pub mode_delta: [i8; 2],
-    pub ref_delta: [i8; RAV1D_TOTAL_REFS_PER_FRAME],
-}
-
-impl From<Dav1dLoopfilterModeRefDeltas> for Rav1dLoopfilterModeRefDeltas {
-    fn from(value: Dav1dLoopfilterModeRefDeltas) -> Self {
-        let Dav1dLoopfilterModeRefDeltas {
-            mode_delta,
-            ref_delta,
-        } = value;
-        Self {
-            mode_delta,
-            ref_delta,
-        }
-    }
-}
-
-impl From<Rav1dLoopfilterModeRefDeltas> for Dav1dLoopfilterModeRefDeltas {
-    fn from(value: Rav1dLoopfilterModeRefDeltas) -> Self {
-        let Rav1dLoopfilterModeRefDeltas {
-            mode_delta,
-            ref_delta,
-        } = value;
-        Self {
-            mode_delta,
-            ref_delta,
-        }
-    }
 }
 
 #[derive(Clone, Default)]
@@ -1923,7 +1887,7 @@ pub struct Rav1dFrameHeaderLoopFilter {
     pub level_v: u8,
     pub mode_ref_delta_enabled: u8,
     pub mode_ref_delta_update: u8,
-    pub mode_ref_deltas: Rav1dLoopfilterModeRefDeltas,
+    pub mode_ref_deltas: Dav1dLoopfilterModeRefDeltas,
     pub sharpness: u8,
 }
 

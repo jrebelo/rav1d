@@ -14,16 +14,17 @@ use crate::include::dav1d::common::Rav1dDataProps;
 use crate::include::dav1d::data::Rav1dData;
 use crate::include::dav1d::dav1d::Rav1dDecodeFrameType;
 use crate::include::dav1d::headers::DRav1d;
+use crate::include::dav1d::headers::Dav1dContentLightLevel;
 use crate::include::dav1d::headers::Dav1dFrameHeaderDelta;
 use crate::include::dav1d::headers::Dav1dFrameHeaderDeltaLF;
 use crate::include::dav1d::headers::Dav1dFrameHeaderDeltaQ;
+use crate::include::dav1d::headers::Dav1dLoopfilterModeRefDeltas;
 use crate::include::dav1d::headers::Dav1dSequenceHeader;
 use crate::include::dav1d::headers::Dav1dSequenceHeaderOperatingParameterInfo;
 use crate::include::dav1d::headers::Dav1dSequenceHeaderOperatingPoint;
 use crate::include::dav1d::headers::Rav1dAdaptiveBoolean;
 use crate::include::dav1d::headers::Rav1dChromaSamplePosition;
 use crate::include::dav1d::headers::Rav1dColorPrimaries;
-use crate::include::dav1d::headers::Rav1dContentLightLevel;
 use crate::include::dav1d::headers::Rav1dFilmGrainData;
 use crate::include::dav1d::headers::Rav1dFilterMode;
 use crate::include::dav1d::headers::Rav1dFrameHeader;
@@ -40,7 +41,6 @@ use crate::include::dav1d::headers::Rav1dFrameSize;
 use crate::include::dav1d::headers::Rav1dFrameSkipMode;
 use crate::include::dav1d::headers::Rav1dFrameType;
 use crate::include::dav1d::headers::Rav1dITUTT35;
-use crate::include::dav1d::headers::Rav1dLoopfilterModeRefDeltas;
 use crate::include::dav1d::headers::Rav1dMasteringDisplay;
 use crate::include::dav1d::headers::Rav1dMatrixCoefficients;
 use crate::include::dav1d::headers::Rav1dObuType;
@@ -696,7 +696,7 @@ fn tile_log2(sz: c_int, tgt: c_int) -> u8 {
     k
 }
 
-static DEFAULT_MODE_REF_DELTAS: Rav1dLoopfilterModeRefDeltas = Rav1dLoopfilterModeRefDeltas {
+static DEFAULT_MODE_REF_DELTAS: Dav1dLoopfilterModeRefDeltas = Dav1dLoopfilterModeRefDeltas {
     mode_delta: [0, 0],
     ref_delta: [1, 0, 0, 0, -1, 0, -1, -1],
 };
@@ -2387,7 +2387,7 @@ fn parse_obus(
 
                     check_trailing_bits(gb, c.strict_std_compliance)?;
 
-                    state.content_light = Some(Arc::new(Rav1dContentLightLevel {
+                    state.content_light = Some(Arc::new(Dav1dContentLightLevel {
                         max_content_light_level,
                         max_frame_average_light_level,
                     })); // TODO(kkysen) fallible allocation
