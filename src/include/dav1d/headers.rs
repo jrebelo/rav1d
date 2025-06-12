@@ -1,7 +1,6 @@
 use crate::align::ArrayDefault;
 use crate::enum_map::EnumKey;
 use crate::levels::SegmentId;
-use crate::relaxed_atomic::RelaxedAtomic;
 use std::ffi::c_int;
 use std::ffi::c_uint;
 use std::fmt;
@@ -256,18 +255,14 @@ impl Dav1dRestorationType {
     }
 }
 
-pub type Dav1dWarpedMotionType = c_uint;
-pub const DAV1D_WM_TYPE_IDENTITY: Dav1dWarpedMotionType =
-    Rav1dWarpedMotionType::Identity as Dav1dWarpedMotionType;
-pub const DAV1D_WM_TYPE_TRANSLATION: Dav1dWarpedMotionType =
-    Rav1dWarpedMotionType::Translation as Dav1dWarpedMotionType;
-pub const DAV1D_WM_TYPE_ROT_ZOOM: Dav1dWarpedMotionType =
-    Rav1dWarpedMotionType::RotZoom as Dav1dWarpedMotionType;
-pub const DAV1D_WM_TYPE_AFFINE: Dav1dWarpedMotionType =
-    Rav1dWarpedMotionType::Affine as Dav1dWarpedMotionType;
+pub const DAV1D_WM_TYPE_IDENTITY: c_uint = Dav1dWarpedMotionType::Identity as c_uint;
+pub const DAV1D_WM_TYPE_TRANSLATION: c_uint = Dav1dWarpedMotionType::Translation as c_uint;
+pub const DAV1D_WM_TYPE_ROT_ZOOM: c_uint = Dav1dWarpedMotionType::RotZoom as c_uint;
+pub const DAV1D_WM_TYPE_AFFINE: c_uint = Dav1dWarpedMotionType::Affine as c_uint;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, FromRepr)]
-pub enum Rav1dWarpedMotionType {
+#[repr(u32)]
+pub enum Dav1dWarpedMotionType {
     Identity = 0,
     Translation = 1,
     RotZoom = 2,
@@ -300,59 +295,12 @@ impl Dav1dWarpedMotionParams {
     }
 }
 
-#[derive(Clone)]
-pub struct Rav1dWarpedMotionParams {
-    pub r#type: Rav1dWarpedMotionType,
-    pub matrix: [i32; 6],
-    pub abcd: RelaxedAtomic<[i16; 4]>,
-}
-
-impl Rav1dWarpedMotionParams {
-    pub fn alpha(&self) -> i16 {
-        self.abcd.get()[0]
-    }
-
-    pub fn beta(&self) -> i16 {
-        self.abcd.get()[1]
-    }
-
-    pub fn gamma(&self) -> i16 {
-        self.abcd.get()[2]
-    }
-
-    pub fn delta(&self) -> i16 {
-        self.abcd.get()[3]
-    }
-}
-
-impl TryFrom<Dav1dWarpedMotionParams> for Rav1dWarpedMotionParams {
-    type Error = ();
-
-    fn try_from(value: Dav1dWarpedMotionParams) -> Result<Self, Self::Error> {
-        let Dav1dWarpedMotionParams {
-            r#type,
-            matrix,
-            abcd,
-        } = value;
-        Ok(Self {
-            r#type: Rav1dWarpedMotionType::from_repr(r#type as usize).ok_or(())?,
-            matrix,
-            abcd: abcd.into(),
-        })
-    }
-}
-
-impl From<Rav1dWarpedMotionParams> for Dav1dWarpedMotionParams {
-    fn from(value: Rav1dWarpedMotionParams) -> Self {
-        let Rav1dWarpedMotionParams {
-            r#type,
-            matrix,
-            abcd,
-        } = value;
+impl Default for Dav1dWarpedMotionParams {
+    fn default() -> Self {
         Self {
-            r#type: r#type as Dav1dWarpedMotionType,
-            matrix,
-            abcd: abcd.get(),
+            r#type: Dav1dWarpedMotionType::Identity,
+            matrix: [0, 0, 1 << 16, 0, 0, 1 << 16],
+            abcd: Default::default(),
         }
     }
 }
@@ -1618,7 +1566,7 @@ pub struct Rav1dFrameHeader {
     pub skip_mode_refs: [i8; 2],
     pub warp_motion: u8,
     pub reduced_txtp_set: u8,
-    pub gmv: [Rav1dWarpedMotionParams; DAV1D_REFS_PER_FRAME],
+    pub gmv: [Dav1dWarpedMotionParams; DAV1D_REFS_PER_FRAME],
 }
 
 impl From<Dav1dFrameHeader> for Rav1dFrameHeader {

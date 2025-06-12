@@ -16,10 +16,10 @@ use crate::include::common::intops::apply_sign64;
 use crate::include::common::intops::clip;
 use crate::include::common::intops::ulog2;
 use crate::include::dav1d::dav1d::Rav1dInloopFilterType;
+use crate::include::dav1d::headers::Dav1dWarpedMotionParams;
+use crate::include::dav1d::headers::Dav1dWarpedMotionType;
 use crate::include::dav1d::headers::Rav1dPixelLayout;
 use crate::include::dav1d::headers::Rav1dPixelLayoutSubSampled;
-use crate::include::dav1d::headers::Rav1dWarpedMotionParams;
-use crate::include::dav1d::headers::Rav1dWarpedMotionType;
 use crate::include::dav1d::picture::Rav1dPictureDataComponent;
 use crate::include::dav1d::picture::Rav1dPictureDataComponentOffset;
 use crate::internal::Bxy;
@@ -2030,9 +2030,9 @@ fn warp_affine<BD: BitDepth>(
     b_dim: &[u8; 4],
     pl: usize,
     refp: &Rav1dThreadPicture,
-    wmp: &Rav1dWarpedMotionParams,
+    wmp: &Dav1dWarpedMotionParams,
 ) -> Result<(), ()> {
-    let abcd = &wmp.abcd.get();
+    let abcd = &wmp.abcd;
     let bd = BD::from_c(f.bitdepth_max);
     let ref_data = &refp.p.data.as_ref().unwrap().data;
 
@@ -3070,7 +3070,7 @@ pub(crate) fn rav1d_recon_b_inter<BD: BitDepth>(
         if cmp::min(bw4, bh4) > 1
             && (inter.inter_mode == GLOBALMV && f.gmv_warp_allowed[inter.r#ref[0] as usize] != 0
                 || inter.motion_mode == MotionMode::Warp
-                    && t.warpmv.r#type > Rav1dWarpedMotionType::Translation)
+                    && t.warpmv.r#type > Dav1dWarpedMotionType::Translation)
         {
             warp_affine::<BD>(
                 f,
@@ -3328,7 +3328,7 @@ pub(crate) fn rav1d_recon_b_inter<BD: BitDepth>(
                     && (inter.inter_mode == GLOBALMV
                         && f.gmv_warp_allowed[inter.r#ref[0] as usize] != 0
                         || inter.motion_mode == MotionMode::Warp
-                            && t.warpmv.r#type > Rav1dWarpedMotionType::Translation)
+                            && t.warpmv.r#type > Dav1dWarpedMotionType::Translation)
                 {
                     for pl in 0..2 {
                         warp_affine::<BD>(

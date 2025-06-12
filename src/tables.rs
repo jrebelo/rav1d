@@ -4,8 +4,6 @@ use crate::align::Align64;
 use crate::align::Align8;
 use crate::enum_map::DefaultValue;
 use crate::include::dav1d::headers::Rav1dFilterMode;
-use crate::include::dav1d::headers::Rav1dWarpedMotionParams;
-use crate::include::dav1d::headers::Rav1dWarpedMotionType;
 use crate::levels::BlockLevel;
 use crate::levels::BlockPartition;
 use crate::levels::BlockSize;
@@ -640,16 +638,6 @@ pub const INTERINTRA_ALLOWED_MASK: c_uint = {
         | 1 << Bs8x16 as u8
         | 1 << Bs8x8 as u8
 };
-
-impl Default for Rav1dWarpedMotionParams {
-    fn default() -> Self {
-        Self {
-            r#type: Rav1dWarpedMotionType::Identity,
-            matrix: [0, 0, 1 << 16, 0, 0, 1 << 16],
-            abcd: Default::default(),
-        }
-    }
-}
 
 pub static DAV1D_CDEF_DIRECTIONS: [[i8; 2]; 12] = [
     [1 * 12 + 0, 2 * 12 + 0],

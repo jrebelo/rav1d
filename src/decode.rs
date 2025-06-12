@@ -52,11 +52,11 @@ use crate::include::dav1d::headers::Dav1dFrameHeaderTiling;
 use crate::include::dav1d::headers::Dav1dRestorationType;
 use crate::include::dav1d::headers::Dav1dSequenceHeader;
 use crate::include::dav1d::headers::Dav1dTxfmMode;
+use crate::include::dav1d::headers::Dav1dWarpedMotionParams;
+use crate::include::dav1d::headers::Dav1dWarpedMotionType;
 use crate::include::dav1d::headers::Rav1dFilterMode;
 use crate::include::dav1d::headers::Rav1dFrameHeader;
 use crate::include::dav1d::headers::Rav1dPixelLayout;
-use crate::include::dav1d::headers::Rav1dWarpedMotionParams;
-use crate::include::dav1d::headers::Rav1dWarpedMotionType;
 use crate::include::dav1d::headers::SgrIdx;
 use crate::include::dav1d::headers::DAV1D_PRIMARY_REF_NONE;
 use crate::include::dav1d::picture::Rav1dPicture;
@@ -531,8 +531,8 @@ fn derive_warpmv(
     bh4: c_int,
     masks: &[u64; 2],
     mv: Mv,
-    mut wmp: Rav1dWarpedMotionParams,
-) -> Rav1dWarpedMotionParams {
+    mut wmp: Dav1dWarpedMotionParams,
+) -> Dav1dWarpedMotionParams {
     let mut pts = [[[0; 2 /* x, y */]; 2 /* in, out */]; 8];
     let mut np = 0;
     let rp = |i: i32, j: i32| {
@@ -632,9 +632,9 @@ fn derive_warpmv(
     wmp.r#type = if !rav1d_find_affine_int(&pts, ret, bw4, bh4, mv, &mut wmp, t.b.x, t.b.y)
         && !rav1d_get_shear_params(&mut wmp)
     {
-        Rav1dWarpedMotionType::Affine
+        Dav1dWarpedMotionType::Affine
     } else {
-        Rav1dWarpedMotionType::Identity
+        Dav1dWarpedMotionType::Identity
     };
     wmp
 }
@@ -1017,7 +1017,7 @@ fn affine_lowest_px(
     t: &Rav1dTaskContext,
     dst: &mut c_int,
     b_dim: &[u8; 4],
-    wmp: &Rav1dWarpedMotionParams,
+    wmp: &Dav1dWarpedMotionParams,
     ss_ver: c_int,
     ss_hor: c_int,
 ) {
@@ -1043,7 +1043,7 @@ fn affine_lowest_px_luma(
     t: &Rav1dTaskContext,
     dst: &mut c_int,
     b_dim: &[u8; 4],
-    wmp: &Rav1dWarpedMotionParams,
+    wmp: &Dav1dWarpedMotionParams,
 ) {
     affine_lowest_px(t, dst, b_dim, wmp, 0, 0);
 }
@@ -1054,7 +1054,7 @@ fn affine_lowest_px_chroma(
     layout: Rav1dPixelLayout,
     dst: &mut c_int,
     b_dim: &[u8; 4],
-    wmp: &Rav1dWarpedMotionParams,
+    wmp: &Dav1dWarpedMotionParams,
 ) {
     assert!(layout != Rav1dPixelLayout::I400);
     if layout == Rav1dPixelLayout::I444 {
@@ -1246,9 +1246,9 @@ fn decode_b(
                 {
                     let two_d = inter.nd.two_d();
                     if two_d.matrix[0] == i16::MIN {
-                        t.warpmv.r#type = Rav1dWarpedMotionType::Identity;
+                        t.warpmv.r#type = Dav1dWarpedMotionType::Identity;
                     } else {
-                        t.warpmv.r#type = Rav1dWarpedMotionType::Affine;
+                        t.warpmv.r#type = Dav1dWarpedMotionType::Affine;
                         t.warpmv.matrix[2] = two_d.matrix[0] as i32 + 0x10000;
                         t.warpmv.matrix[3] = two_d.matrix[1] as i32;
                         t.warpmv.matrix[4] = two_d.matrix[2] as i32;
@@ -2467,7 +2467,7 @@ fn decode_b(
                 }
                 GLOBALMV => {
                     has_subpel_filter |= frame_hdr.gmv[r#ref[i] as usize].r#type
-                        == Rav1dWarpedMotionType::Translation;
+                        == Dav1dWarpedMotionType::Translation;
                     get_gmv_2d(
                         &frame_hdr.gmv[r#ref[i] as usize],
                         t.b.x,
@@ -2710,7 +2710,7 @@ fn decode_b(
                     );
                     has_subpel_filter = cmp::min(bw4, bh4) == 1
                         || frame_hdr.gmv[r#ref[0] as usize].r#type
-                            == Rav1dWarpedMotionType::Translation;
+                            == Dav1dWarpedMotionType::Translation;
 
                     drl_idx = Default::default();
                 } else {
@@ -2867,7 +2867,7 @@ fn decode_b(
                 // is not warped global motion
                 && !(!frame_hdr.force_integer_mv
                     && inter_mode == GLOBALMV
-                    && frame_hdr.gmv[r#ref[0] as usize].r#type > Rav1dWarpedMotionType::Translation)
+                    && frame_hdr.gmv[r#ref[0] as usize].r#type > Dav1dWarpedMotionType::Translation)
                 // has overlappable neighbours
                 && (have_left && findoddzero(&t.l.intra.index(by4 as usize..(by4 + h4) as usize))
                     || have_top && findoddzero(&ta.intra.index(bx4 as usize..(bx4 + w4) as usize)))
@@ -2926,7 +2926,7 @@ fn decode_b(
                         );
                     }
                     if t.frame_thread.pass != 0 {
-                        matrix = Some(if t.warpmv.r#type == Rav1dWarpedMotionType::Affine {
+                        matrix = Some(if t.warpmv.r#type == Dav1dWarpedMotionType::Affine {
                             [
                                 t.warpmv.matrix[2] - 0x10000,
                                 t.warpmv.matrix[3],
@@ -3193,7 +3193,7 @@ fn decode_b(
                     && (inter.inter_mode == GLOBALMV
                         && f.gmv_warp_allowed[inter.r#ref[0] as usize] != 0
                         || inter.motion_mode == MotionMode::Warp
-                            && t.warpmv.r#type > Rav1dWarpedMotionType::Translation)
+                            && t.warpmv.r#type > Dav1dWarpedMotionType::Translation)
                 {
                     affine_lowest_px_luma(
                         t,
@@ -3303,7 +3303,7 @@ fn decode_b(
                         && (inter.inter_mode == GLOBALMV
                             && f.gmv_warp_allowed[inter.r#ref[0] as usize] != 0
                             || inter.motion_mode == MotionMode::Warp
-                                && t.warpmv.r#type > Rav1dWarpedMotionType::Translation)
+                                && t.warpmv.r#type > Dav1dWarpedMotionType::Translation)
                     {
                         affine_lowest_px_chroma(
                             t,
@@ -5093,7 +5093,7 @@ pub fn rav1d_submit_frame(c: &Rav1dContext, state: &mut Rav1dState) -> Rav1dResu
                 f.svc[i][1].scale = 0;
                 f.svc[i][0].scale = f.svc[i][1].scale;
             }
-            f.gmv_warp_allowed[i] = (frame_hdr.gmv[i].r#type > Rav1dWarpedMotionType::Translation
+            f.gmv_warp_allowed[i] = (frame_hdr.gmv[i].r#type > Dav1dWarpedMotionType::Translation
                 && !frame_hdr.force_integer_mv
                 && !rav1d_get_shear_params(&frame_hdr.gmv[i])
                 && f.svc[i][0].scale == 0) as u8;

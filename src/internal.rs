@@ -30,8 +30,8 @@ use crate::include::dav1d::headers::Dav1dFrameHeader;
 use crate::include::dav1d::headers::Dav1dITUTT35;
 use crate::include::dav1d::headers::Dav1dMasteringDisplay;
 use crate::include::dav1d::headers::Dav1dSequenceHeader;
+use crate::include::dav1d::headers::Dav1dWarpedMotionParams;
 use crate::include::dav1d::headers::Rav1dFrameHeader;
-use crate::include::dav1d::headers::Rav1dWarpedMotionParams;
 use crate::include::dav1d::picture::Rav1dPicAllocator;
 use crate::include::dav1d::picture::Rav1dPicture;
 use crate::ipred::Rav1dIntraPredDSPContext;
@@ -1178,7 +1178,7 @@ pub(crate) struct Rav1dTaskContext {
     pub pal_sz_uv: [[u8; 32]; 2], /* [2 a/l][32 bx4/by4] */
     pub scratch: TaskContextScratch,
 
-    pub warpmv: Rav1dWarpedMotionParams,
+    pub warpmv: Dav1dWarpedMotionParams,
     /// Index into the relevant `Rav1dFrameContext::lf.mask` array.
     pub lf_mask: Option<usize>,
     pub top_pre_cdef_toggle: c_int,

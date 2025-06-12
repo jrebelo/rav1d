@@ -34,6 +34,8 @@ use crate::include::dav1d::headers::Dav1dSequenceHeader;
 use crate::include::dav1d::headers::Dav1dSequenceHeaderOperatingParameterInfo;
 use crate::include::dav1d::headers::Dav1dSequenceHeaderOperatingPoint;
 use crate::include::dav1d::headers::Dav1dTxfmMode;
+use crate::include::dav1d::headers::Dav1dWarpedMotionParams;
+use crate::include::dav1d::headers::Dav1dWarpedMotionType;
 use crate::include::dav1d::headers::ITUTT35PayloadPtr;
 use crate::include::dav1d::headers::Rav1dAdaptiveBoolean;
 use crate::include::dav1d::headers::Rav1dChromaSamplePosition;
@@ -51,8 +53,6 @@ use crate::include::dav1d::headers::Rav1dProfile;
 use crate::include::dav1d::headers::Rav1dSegmentationData;
 use crate::include::dav1d::headers::Rav1dSegmentationDataSet;
 use crate::include::dav1d::headers::Rav1dTransferCharacteristics;
-use crate::include::dav1d::headers::Rav1dWarpedMotionParams;
-use crate::include::dav1d::headers::Rav1dWarpedMotionType;
 use crate::include::dav1d::headers::DAV1D_MAX_CDEF_STRENGTHS;
 use crate::include::dav1d::headers::DAV1D_MAX_OPERATING_POINTS;
 use crate::include::dav1d::headers::DAV1D_MAX_TILE_COLS;
@@ -1542,21 +1542,21 @@ fn parse_gmv(
     hp: bool,
     debug: &Debug,
     gb: &mut GetBits,
-) -> Rav1dResult<[Rav1dWarpedMotionParams; DAV1D_REFS_PER_FRAME]> {
-    let mut gmv = array::from_fn(|_| Rav1dWarpedMotionParams::default());
+) -> Rav1dResult<[Dav1dWarpedMotionParams; DAV1D_REFS_PER_FRAME]> {
+    let mut gmv = array::from_fn(|_| Dav1dWarpedMotionParams::default());
 
     if frame_type.is_inter_or_switch() {
         for (i, gmv) in gmv.iter_mut().enumerate() {
             gmv.r#type = if !gb.get_bit() {
-                Rav1dWarpedMotionType::Identity
+                Dav1dWarpedMotionType::Identity
             } else if gb.get_bit() {
-                Rav1dWarpedMotionType::RotZoom
+                Dav1dWarpedMotionType::RotZoom
             } else if gb.get_bit() {
-                Rav1dWarpedMotionType::Translation
+                Dav1dWarpedMotionType::Translation
             } else {
-                Rav1dWarpedMotionType::Affine
+                Dav1dWarpedMotionType::Affine
             };
-            if gmv.r#type == Rav1dWarpedMotionType::Identity {
+            if gmv.r#type == Dav1dWarpedMotionType::Identity {
                 continue;
             }
 
@@ -1578,7 +1578,7 @@ fn parse_gmv(
             let bits;
             let shift;
 
-            if gmv.r#type >= Rav1dWarpedMotionType::RotZoom {
+            if gmv.r#type >= Dav1dWarpedMotionType::RotZoom {
                 mat[2] = (1 << 16) + 2 * gb.get_bits_subexp(ref_mat[2] - (1 << 16) >> 1, 12);
                 mat[3] = 2 * gb.get_bits_subexp(ref_mat[3] >> 1, 12);
 
@@ -1589,7 +1589,7 @@ fn parse_gmv(
                 shift = 13 + !hp as c_int;
             }
 
-            if gmv.r#type == Rav1dWarpedMotionType::Affine {
+            if gmv.r#type == Dav1dWarpedMotionType::Affine {
                 mat[4] = 2 * gb.get_bits_subexp(ref_mat[4] >> 1, 12);
                 mat[5] = (1 << 16) + 2 * gb.get_bits_subexp(ref_mat[5] - (1 << 16) >> 1, 12);
             } else {

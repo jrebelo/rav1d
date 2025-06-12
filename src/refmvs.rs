@@ -15,8 +15,8 @@ use crate::ffi_safe::FFISafe;
 use crate::include::common::intops::apply_sign;
 use crate::include::common::intops::iclip;
 use crate::include::dav1d::headers::Dav1dSequenceHeader;
+use crate::include::dav1d::headers::Dav1dWarpedMotionType;
 use crate::include::dav1d::headers::Rav1dFrameHeader;
-use crate::include::dav1d::headers::Rav1dWarpedMotionType;
 use crate::internal::Bxy;
 use crate::intra_edge::EdgeFlags;
 use crate::levels::BlockSize;
@@ -936,7 +936,7 @@ pub(crate) fn rav1d_refmvs_find(
         );
 
         gmv[0] = if frame_hdr.gmv[r#ref.r#ref[0] as usize - 1].r#type
-            > Rav1dWarpedMotionType::Translation
+            > Dav1dWarpedMotionType::Translation
         {
             tgmv[0]
         } else {
@@ -956,7 +956,7 @@ pub(crate) fn rav1d_refmvs_find(
             frame_hdr,
         );
         gmv[1] = if frame_hdr.gmv[r#ref.r#ref[1] as usize - 1].r#type
-            > Rav1dWarpedMotionType::Translation
+            > Dav1dWarpedMotionType::Translation
         {
             tgmv[1]
         } else {

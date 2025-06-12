@@ -2,10 +2,10 @@ use crate::align::Align8;
 use crate::disjoint_mut::DisjointMut;
 use crate::disjoint_mut::DisjointMutSlice;
 use crate::include::common::intops::apply_sign;
+use crate::include::dav1d::headers::Dav1dWarpedMotionParams;
+use crate::include::dav1d::headers::Dav1dWarpedMotionType;
 use crate::include::dav1d::headers::Rav1dFilterMode;
 use crate::include::dav1d::headers::Rav1dFrameHeader;
-use crate::include::dav1d::headers::Rav1dWarpedMotionParams;
-use crate::include::dav1d::headers::Rav1dWarpedMotionType;
 use crate::internal::Bxy;
 use crate::levels::BlockLevel;
 use crate::levels::BlockPartition;
@@ -665,7 +665,7 @@ pub(crate) fn fix_mv_precision(hdr: &Rav1dFrameHeader, mv: &mut Mv) {
 
 #[inline]
 pub(crate) fn get_gmv_2d(
-    gmv: &Rav1dWarpedMotionParams,
+    gmv: &Dav1dWarpedMotionParams,
     bx4: c_int,
     by4: c_int,
     bw4: c_int,
@@ -673,11 +673,11 @@ pub(crate) fn get_gmv_2d(
     hdr: &Rav1dFrameHeader,
 ) -> Mv {
     match gmv.r#type {
-        Rav1dWarpedMotionType::RotZoom => {
+        Dav1dWarpedMotionType::RotZoom => {
             assert!(gmv.matrix[5] == gmv.matrix[2]);
             assert!(gmv.matrix[4] == -gmv.matrix[3]);
         }
-        Rav1dWarpedMotionType::Translation => {
+        Dav1dWarpedMotionType::Translation => {
             let mut res = Mv {
                 y: (gmv.matrix[0] >> 13) as i16,
                 x: (gmv.matrix[1] >> 13) as i16,
@@ -687,10 +687,10 @@ pub(crate) fn get_gmv_2d(
             }
             return res;
         }
-        Rav1dWarpedMotionType::Identity => {
+        Dav1dWarpedMotionType::Identity => {
             return Mv::ZERO;
         }
-        Rav1dWarpedMotionType::Affine => {}
+        Dav1dWarpedMotionType::Affine => {}
     }
     let x = bx4 * 4 + bw4 * 2 - 1;
     let y = by4 * 4 + bh4 * 2 - 1;
