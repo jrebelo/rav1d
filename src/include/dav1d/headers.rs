@@ -806,106 +806,10 @@ pub struct Dav1dSequenceHeaderOperatingPoint {
 
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
 #[repr(C)]
-pub struct Rav1dSequenceHeaderOperatingPoint {
-    pub major_level: u8,
-    pub minor_level: u8,
-    pub initial_display_delay: u8,
-    pub idc: u16,
-    pub tier: u8,
-    pub decoder_model_param_present: u8,
-    pub display_model_param_present: u8,
-}
-
-impl From<Dav1dSequenceHeaderOperatingPoint> for Rav1dSequenceHeaderOperatingPoint {
-    fn from(value: Dav1dSequenceHeaderOperatingPoint) -> Self {
-        let Dav1dSequenceHeaderOperatingPoint {
-            major_level,
-            minor_level,
-            initial_display_delay,
-            idc,
-            tier,
-            decoder_model_param_present,
-            display_model_param_present,
-        } = value;
-        Self {
-            major_level,
-            minor_level,
-            initial_display_delay,
-            idc,
-            tier,
-            decoder_model_param_present,
-            display_model_param_present,
-        }
-    }
-}
-
-impl From<Rav1dSequenceHeaderOperatingPoint> for Dav1dSequenceHeaderOperatingPoint {
-    fn from(value: Rav1dSequenceHeaderOperatingPoint) -> Self {
-        let Rav1dSequenceHeaderOperatingPoint {
-            major_level,
-            minor_level,
-            initial_display_delay,
-            idc,
-            tier,
-            decoder_model_param_present,
-            display_model_param_present,
-        } = value;
-        Self {
-            major_level,
-            minor_level,
-            initial_display_delay,
-            idc,
-            tier,
-            decoder_model_param_present,
-            display_model_param_present,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Default, PartialEq, Eq)]
-#[repr(C)]
 pub struct Dav1dSequenceHeaderOperatingParameterInfo {
     pub decoder_buffer_delay: u32,
     pub encoder_buffer_delay: u32,
     pub low_delay_mode: u8,
-}
-
-#[derive(Clone, Copy, Default, PartialEq, Eq)]
-#[repr(C)]
-pub struct Rav1dSequenceHeaderOperatingParameterInfo {
-    pub decoder_buffer_delay: u32,
-    pub encoder_buffer_delay: u32,
-    pub low_delay_mode: u8,
-}
-
-impl From<Dav1dSequenceHeaderOperatingParameterInfo> for Rav1dSequenceHeaderOperatingParameterInfo {
-    fn from(value: Dav1dSequenceHeaderOperatingParameterInfo) -> Self {
-        let Dav1dSequenceHeaderOperatingParameterInfo {
-            decoder_buffer_delay,
-            encoder_buffer_delay,
-            low_delay_mode,
-        } = value;
-        Self {
-            decoder_buffer_delay,
-            encoder_buffer_delay,
-            low_delay_mode,
-        }
-    }
-}
-
-impl From<Rav1dSequenceHeaderOperatingParameterInfo> for Dav1dSequenceHeaderOperatingParameterInfo {
-    fn from(value: Rav1dSequenceHeaderOperatingParameterInfo) -> Self {
-        let Rav1dSequenceHeaderOperatingParameterInfo {
-            decoder_buffer_delay,
-            encoder_buffer_delay,
-            low_delay_mode,
-        } = value;
-        Self {
-            decoder_buffer_delay,
-            encoder_buffer_delay,
-            low_delay_mode,
-        }
-    }
 }
 
 #[derive(Clone)]
