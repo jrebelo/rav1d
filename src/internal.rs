@@ -27,9 +27,9 @@ use crate::include::dav1d::dav1d::Rav1dInloopFilterType;
 use crate::include::dav1d::headers::DRav1d;
 use crate::include::dav1d::headers::Dav1dContentLightLevel;
 use crate::include::dav1d::headers::Dav1dFrameHeader;
+use crate::include::dav1d::headers::Dav1dITUTT35;
 use crate::include::dav1d::headers::Dav1dSequenceHeader;
 use crate::include::dav1d::headers::Rav1dFrameHeader;
-use crate::include::dav1d::headers::Rav1dITUTT35;
 use crate::include::dav1d::headers::Rav1dMasteringDisplay;
 use crate::include::dav1d::headers::Rav1dWarpedMotionParams;
 use crate::include::dav1d::picture::Rav1dPicAllocator;
@@ -386,7 +386,7 @@ pub struct Rav1dState {
     /// This is ref-counted in C, but since we first accumulate the `Vec<Rav1dITUTT35>`
     /// during [`parse_obus`] and then convert to an [`Arc`] in [`Rav1dITUTT35::to_immut`],
     /// we don't need an [`Arc`] here.
-    pub(crate) itut_t35: Vec<Rav1dITUTT35>,
+    pub(crate) itut_t35: Vec<Dav1dITUTT35>,
 
     // decoded output picture queue
     pub(crate) in_0: Rav1dData,

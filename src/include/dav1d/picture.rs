@@ -21,7 +21,6 @@ use crate::include::dav1d::headers::Dav1dITUTT35;
 use crate::include::dav1d::headers::Dav1dPixelLayout;
 use crate::include::dav1d::headers::Dav1dSequenceHeader;
 use crate::include::dav1d::headers::Rav1dFrameHeader;
-use crate::include::dav1d::headers::Rav1dITUTT35;
 use crate::include::dav1d::headers::Rav1dMasteringDisplay;
 use crate::include::dav1d::headers::Rav1dPixelLayout;
 use crate::pixels::Pixels;
@@ -106,7 +105,7 @@ pub struct Dav1dPicture {
     pub seq_hdr_ref: Option<RawArc<Dav1dSequenceHeader>>, // opaque, so we can change this
     pub content_light_ref: Option<RawArc<Dav1dContentLightLevel>>, // opaque, so we can change this
     pub mastering_display_ref: Option<RawArc<Rav1dMasteringDisplay>>, // opaque, so we can change this
-    pub itut_t35_ref: Option<RawArc<DRav1d<Box<[Rav1dITUTT35]>, Box<[Dav1dITUTT35]>>>>, // opaque, so we can change this
+    pub itut_t35_ref: Option<RawArc<Box<[Dav1dITUTT35]>>>, // opaque, so we can change this
     pub reserved_ref: [uintptr_t; 4],
     pub r#ref: Option<RawArc<Rav1dPictureData>>, // opaque, so we can change this
     pub allocator_data: Option<SendSyncNonNull<c_void>>,
@@ -421,7 +420,7 @@ pub(crate) struct Rav1dPicture {
     pub m: Rav1dDataProps,
     pub content_light: Option<Arc<Dav1dContentLightLevel>>,
     pub mastering_display: Option<Arc<Rav1dMasteringDisplay>>,
-    pub itut_t35: Arc<DRav1d<Box<[Rav1dITUTT35]>, Box<[Dav1dITUTT35]>>>,
+    pub itut_t35: Arc<Box<[Dav1dITUTT35]>>,
 }
 
 impl From<Dav1dPicture> for Rav1dPicture {
@@ -512,7 +511,7 @@ impl From<Rav1dPicture> for Dav1dPicture {
             content_light: content_light.as_ref().map(|arc| arc.as_ref().into()),
             mastering_display: mastering_display.as_ref().map(|arc| arc.as_ref().into()),
             // [`DRav1d::from_rav1d`] is called in [`rav1d_parse_obus`].
-            itut_t35: Some(NonNull::new(itut_t35.dav1d.as_ptr().cast_mut()).unwrap()),
+            itut_t35: Some(NonNull::new(itut_t35.as_ptr().cast_mut()).unwrap()),
             n_itut_t35: itut_t35.len(),
             reserved: Default::default(),
             frame_hdr_ref: frame_hdr.map(RawArc::from_arc),

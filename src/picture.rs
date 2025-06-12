@@ -11,7 +11,6 @@ use crate::include::dav1d::headers::Dav1dFrameHeader;
 use crate::include::dav1d::headers::Dav1dITUTT35;
 use crate::include::dav1d::headers::Dav1dSequenceHeader;
 use crate::include::dav1d::headers::Rav1dFrameHeader;
-use crate::include::dav1d::headers::Rav1dITUTT35;
 use crate::include::dav1d::headers::Rav1dMasteringDisplay;
 use crate::include::dav1d::headers::Rav1dPixelLayout;
 use crate::include::dav1d::picture::Dav1dPicture;
@@ -238,7 +237,7 @@ pub fn rav1d_picture_copy_props(
     p: &mut Rav1dPicture,
     content_light: Option<Arc<Dav1dContentLightLevel>>,
     mastering_display: Option<Arc<Rav1dMasteringDisplay>>,
-    itut_t35: Arc<DRav1d<Box<[Rav1dITUTT35]>, Box<[Dav1dITUTT35]>>>,
+    itut_t35: Arc<Box<[Dav1dITUTT35]>>,
     props: Rav1dDataProps,
 ) {
     p.m = props;
@@ -260,7 +259,7 @@ pub(crate) fn rav1d_thread_picture_alloc(
     frame_flags: &mut PictureFlags,
     f: &mut Rav1dFrameData,
     bpc: u8,
-    itut_t35: Vec<Rav1dITUTT35>,
+    itut_t35: Vec<Dav1dITUTT35>,
 ) -> Rav1dResult {
     let p = &mut f.sr_cur;
     let have_frame_mt = fc.len() > 1;
@@ -280,7 +279,7 @@ pub(crate) fn rav1d_thread_picture_alloc(
         &mut p.p,
         content_light,
         mastering_display,
-        Rav1dITUTT35::to_immut(itut_t35),
+        Arc::new(itut_t35.into_boxed_slice()),
         f.tiles[0].data.m.clone(),
     );
 

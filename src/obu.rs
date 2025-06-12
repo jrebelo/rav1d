@@ -18,10 +18,12 @@ use crate::include::dav1d::headers::Dav1dContentLightLevel;
 use crate::include::dav1d::headers::Dav1dFrameHeaderDelta;
 use crate::include::dav1d::headers::Dav1dFrameHeaderDeltaLF;
 use crate::include::dav1d::headers::Dav1dFrameHeaderDeltaQ;
+use crate::include::dav1d::headers::Dav1dITUTT35;
 use crate::include::dav1d::headers::Dav1dLoopfilterModeRefDeltas;
 use crate::include::dav1d::headers::Dav1dSequenceHeader;
 use crate::include::dav1d::headers::Dav1dSequenceHeaderOperatingParameterInfo;
 use crate::include::dav1d::headers::Dav1dSequenceHeaderOperatingPoint;
+use crate::include::dav1d::headers::ITUTT35PayloadPtr;
 use crate::include::dav1d::headers::Rav1dAdaptiveBoolean;
 use crate::include::dav1d::headers::Rav1dChromaSamplePosition;
 use crate::include::dav1d::headers::Rav1dColorPrimaries;
@@ -40,7 +42,6 @@ use crate::include::dav1d::headers::Rav1dFrameHeaderTiling;
 use crate::include::dav1d::headers::Rav1dFrameSize;
 use crate::include::dav1d::headers::Rav1dFrameSkipMode;
 use crate::include::dav1d::headers::Rav1dFrameType;
-use crate::include::dav1d::headers::Rav1dITUTT35;
 use crate::include::dav1d::headers::Rav1dMasteringDisplay;
 use crate::include::dav1d::headers::Rav1dMatrixCoefficients;
 use crate::include::dav1d::headers::Rav1dObuType;
@@ -2438,11 +2439,12 @@ fn parse_obus(
                     } else {
                         let country_code = country_code as u8;
                         let country_code_extension_byte = country_code_extension_byte as u8;
-                        let payload = gb.get_bytes(payload_size as usize).into(); // TODO fallible allocation
-                        let itut_t35 = Rav1dITUTT35 {
+                        let payload = Vec::leak(gb.get_bytes(payload_size as usize).to_vec()); // TODO fallible allocation
+                        let itut_t35 = Dav1dITUTT35 {
                             country_code,
                             country_code_extension_byte,
-                            payload,
+                            payload_size,
+                            payload: ITUTT35PayloadPtr(payload.as_ptr()),
                         };
                         state.itut_t35.push(itut_t35); // TODO fallible allocation
                     }
@@ -2506,7 +2508,7 @@ fn parse_obus(
                     state.content_light.clone(),
                     state.mastering_display.clone(),
                     // Must be moved from the context to the frame.
-                    Rav1dITUTT35::to_immut(mem::take(&mut state.itut_t35)),
+                    Arc::new(mem::take(&mut state.itut_t35).into_boxed_slice()),
                     props.clone(),
                 );
                 state.event_flags |= state.refs[frame_hdr.existing_frame_idx as usize]
@@ -2566,7 +2568,7 @@ fn parse_obus(
                     state.content_light.clone(),
                     state.mastering_display.clone(),
                     // Must be moved from the context to the frame.
-                    Rav1dITUTT35::to_immut(mem::take(&mut state.itut_t35)),
+                    Arc::new(mem::take(&mut state.itut_t35).into_boxed_slice()),
                     props.clone(),
                 );
             }
