@@ -45,7 +45,7 @@ fn backup_lpf<BD: BitDepth>(
     let src_w = src_w as usize;
 
     let cdef_backup = (lr_backup == 0) as c_int;
-    let dst_w = if frame_hdr.size.super_res.enabled {
+    let dst_w = if frame_hdr.size.super_res.is_enabled() {
         (frame_hdr.size.width[1] + ss_hor) as usize >> ss_hor
     } else {
         src_w

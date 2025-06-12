@@ -68,12 +68,7 @@ pub const DAV1D_REFS_PER_FRAME: usize = 7;
 pub const DAV1D_TOTAL_REFS_PER_FRAME: usize = DAV1D_REFS_PER_FRAME + 1;
 
 pub(crate) const RAV1D_MAX_CDEF_STRENGTHS: usize = DAV1D_MAX_CDEF_STRENGTHS;
-pub(crate) const RAV1D_MAX_OPERATING_POINTS: usize = DAV1D_MAX_OPERATING_POINTS;
-pub(crate) const RAV1D_MAX_TILE_COLS: usize = DAV1D_MAX_TILE_COLS;
-pub(crate) const RAV1D_MAX_TILE_ROWS: usize = DAV1D_MAX_TILE_ROWS;
-pub(crate) const _RAV1D_NUM_REF_FRAMES: usize = DAV1D_NUM_REF_FRAMES;
 pub(crate) const RAV1D_PRIMARY_REF_NONE: u8 = DAV1D_PRIMARY_REF_NONE;
-pub(crate) const RAV1D_REFS_PER_FRAME: usize = DAV1D_REFS_PER_FRAME;
 
 pub type Dav1dObuType = c_uint;
 pub const DAV1D_OBU_PADDING: Dav1dObuType = Rav1dObuType::Padding as Dav1dObuType;
@@ -98,32 +93,18 @@ pub enum Rav1dObuType {
     Padding = 15,
 }
 
-pub type Dav1dTxfmMode = c_uint;
-pub const DAV1D_N_TX_MODES: usize = Rav1dTxfmMode::COUNT;
-pub const DAV1D_TX_4X4_ONLY: Dav1dTxfmMode = Rav1dTxfmMode::Only4x4 as Dav1dTxfmMode;
-pub const DAV1D_TX_LARGEST: Dav1dTxfmMode = Rav1dTxfmMode::Largest as Dav1dTxfmMode;
-pub const DAV1D_TX_SWITCHABLE: Dav1dTxfmMode = Rav1dTxfmMode::Switchable as Dav1dTxfmMode;
+pub const DAV1D_N_TX_MODES: usize = Dav1dTxfmMode::COUNT;
+pub const DAV1D_TX_4X4_ONLY: c_uint = Dav1dTxfmMode::Only4x4 as c_uint;
+pub const DAV1D_TX_LARGEST: c_uint = Dav1dTxfmMode::Largest as c_uint;
+pub const DAV1D_TX_SWITCHABLE: c_uint = Dav1dTxfmMode::Switchable as c_uint;
 
 #[derive(Clone, Copy, PartialEq, Eq, FromRepr, EnumCount, Default)]
-pub enum Rav1dTxfmMode {
+#[repr(u32)]
+pub enum Dav1dTxfmMode {
     #[default] // Not really a real default.
     Only4x4 = 0,
     Largest = 1,
     Switchable = 2,
-}
-
-impl From<Rav1dTxfmMode> for Dav1dTxfmMode {
-    fn from(value: Rav1dTxfmMode) -> Self {
-        value as Dav1dTxfmMode
-    }
-}
-
-impl TryFrom<Dav1dTxfmMode> for Rav1dTxfmMode {
-    type Error = ();
-
-    fn try_from(value: Dav1dTxfmMode) -> Result<Self, Self::Error> {
-        Self::from_repr(value as usize).ok_or(())
-    }
 }
 
 pub type Dav1dFilterMode = u8;
@@ -209,15 +190,13 @@ impl TryFrom<Dav1dAdaptiveBoolean> for Rav1dAdaptiveBoolean {
     }
 }
 
-pub type Dav1dRestorationType = u8;
-pub const DAV1D_RESTORATION_NONE: Dav1dRestorationType = Rav1dRestorationType::None.to_repr();
-pub const DAV1D_RESTORATION_SWITCHABLE: Dav1dRestorationType =
-    Rav1dRestorationType::Switchable.to_repr();
-pub const DAV1D_RESTORATION_WIENER: Dav1dRestorationType = Rav1dRestorationType::Wiener.to_repr();
-pub const DAV1D_RESTORATION_SGRPROJ: Dav1dRestorationType =
-    Rav1dRestorationType::SgrProj(SgrIdx::I0).to_repr();
+pub const DAV1D_RESTORATION_NONE: u8 = Dav1dRestorationType::None.to_repr();
+pub const DAV1D_RESTORATION_SWITCHABLE: u8 = Dav1dRestorationType::Switchable.to_repr();
+pub const DAV1D_RESTORATION_WIENER: u8 = Dav1dRestorationType::Wiener.to_repr();
+pub const DAV1D_RESTORATION_SGRPROJ: u8 = Dav1dRestorationType::SgrProj(SgrIdx::I0).to_repr();
 
 #[derive(Clone, Copy, PartialEq, Eq, FromRepr)]
+#[repr(u8)]
 pub enum SgrIdx {
     I0 = 0,
     I1 = 1,
@@ -250,7 +229,8 @@ impl Debug for SgrIdx {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum Rav1dRestorationType {
+#[repr(u8)]
+pub enum Dav1dRestorationType {
     #[default]
     None,
     Switchable,
@@ -258,13 +238,13 @@ pub enum Rav1dRestorationType {
     SgrProj(SgrIdx),
 }
 
-impl Rav1dRestorationType {
-    pub const fn to_repr(&self) -> Dav1dRestorationType {
+impl Dav1dRestorationType {
+    pub const fn to_repr(&self) -> u8 {
         match *self {
             Self::None => 0,
             Self::Switchable => 1,
             Self::Wiener => 2,
-            Self::SgrProj(idx) => 3 + idx as Dav1dRestorationType,
+            Self::SgrProj(idx) => 3 + idx as u8,
         }
     }
 
@@ -482,7 +462,8 @@ impl From<Rav1dPixelLayoutSubSampled> for Rav1dPixelLayout {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, FromRepr, Default)]
-pub enum Rav1dFrameType {
+#[repr(u32)]
+pub enum Dav1dFrameType {
     #[default] // Not really a real default.
     Key = 0,
     Inter = 1,
@@ -490,33 +471,12 @@ pub enum Rav1dFrameType {
     Switch = 3,
 }
 
-impl Rav1dFrameType {
-    pub const fn into_rav1d(self) -> Dav1dFrameType {
-        self as Dav1dFrameType
-    }
-}
+pub const DAV1D_FRAME_TYPE_KEY: c_uint = Dav1dFrameType::Key as u32;
+pub const DAV1D_FRAME_TYPE_INTER: c_uint = Dav1dFrameType::Inter as u32;
+pub const DAV1D_FRAME_TYPE_INTRA: c_uint = Dav1dFrameType::Intra as u32;
+pub const DAV1D_FRAME_TYPE_SWITCH: c_uint = Dav1dFrameType::Switch as u32;
 
-pub type Dav1dFrameType = c_uint;
-pub const DAV1D_FRAME_TYPE_KEY: Dav1dFrameType = Rav1dFrameType::Key.into_rav1d();
-pub const DAV1D_FRAME_TYPE_INTER: Dav1dFrameType = Rav1dFrameType::Inter.into_rav1d();
-pub const DAV1D_FRAME_TYPE_INTRA: Dav1dFrameType = Rav1dFrameType::Intra.into_rav1d();
-pub const DAV1D_FRAME_TYPE_SWITCH: Dav1dFrameType = Rav1dFrameType::Switch.into_rav1d();
-
-impl From<Rav1dFrameType> for Dav1dFrameType {
-    fn from(value: Rav1dFrameType) -> Self {
-        value.into_rav1d()
-    }
-}
-
-impl TryFrom<Dav1dFrameType> for Rav1dFrameType {
-    type Error = ();
-
-    fn try_from(value: Dav1dFrameType) -> Result<Self, Self::Error> {
-        Self::from_repr(value as usize).ok_or(())
-    }
-}
-
-impl Rav1dFrameType {
+impl Dav1dFrameType {
     pub const fn is_inter_or_switch(&self) -> bool {
         matches!(self, Self::Inter | Self::Switch)
     }
@@ -1354,77 +1314,23 @@ impl From<Rav1dFrameHeaderFilmGrain> for Dav1dFrameHeaderFilmGrain {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy, Default)]
 #[repr(C)]
 pub struct Dav1dFrameHeaderOperatingPoint {
     pub buffer_removal_time: u32,
 }
 
-#[derive(Clone, Copy, Default)]
-#[repr(C)]
-pub struct Rav1dFrameHeaderOperatingPoint {
-    pub buffer_removal_time: u32,
-}
-
-impl From<Dav1dFrameHeaderOperatingPoint> for Rav1dFrameHeaderOperatingPoint {
-    fn from(value: Dav1dFrameHeaderOperatingPoint) -> Self {
-        let Dav1dFrameHeaderOperatingPoint {
-            buffer_removal_time,
-        } = value;
-        Self {
-            buffer_removal_time,
-        }
-    }
-}
-
-impl From<Rav1dFrameHeaderOperatingPoint> for Dav1dFrameHeaderOperatingPoint {
-    fn from(value: Rav1dFrameHeaderOperatingPoint) -> Self {
-        let Rav1dFrameHeaderOperatingPoint {
-            buffer_removal_time,
-        } = value;
-        Self {
-            buffer_removal_time,
-        }
-    }
-}
-
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[repr(C)]
 pub struct Dav1dFrameHeaderSuperRes {
     pub width_scale_denominator: u8,
     pub enabled: u8,
 }
 
-#[derive(Clone, Default)]
-#[repr(C)]
-pub struct Rav1dFrameHeaderSuperRes {
-    pub width_scale_denominator: u8,
-    pub enabled: bool,
-}
-
-impl From<Dav1dFrameHeaderSuperRes> for Rav1dFrameHeaderSuperRes {
-    fn from(value: Dav1dFrameHeaderSuperRes) -> Self {
-        let Dav1dFrameHeaderSuperRes {
-            width_scale_denominator,
-            enabled,
-        } = value;
-        Self {
-            width_scale_denominator,
-            enabled: enabled != 0,
-        }
-    }
-}
-
-impl From<Rav1dFrameHeaderSuperRes> for Dav1dFrameHeaderSuperRes {
-    fn from(value: Rav1dFrameHeaderSuperRes) -> Self {
-        let Rav1dFrameHeaderSuperRes {
-            width_scale_denominator,
-            enabled,
-        } = value;
-        Self {
-            width_scale_denominator,
-            enabled: enabled as u8,
-        }
+impl Dav1dFrameHeaderSuperRes {
+    #[inline]
+    pub fn is_enabled(&self) -> bool {
+        self.enabled == 1
     }
 }
 
@@ -1446,25 +1352,7 @@ pub struct Dav1dFrameHeaderTiling {
     pub update: u16,
 }
 
-#[derive(Clone)]
-#[repr(C)]
-pub struct Rav1dFrameHeaderTiling {
-    pub uniform: u8,
-    pub n_bytes: u8,
-    pub min_log2_cols: u8,
-    pub max_log2_cols: u8,
-    pub log2_cols: u8,
-    pub cols: u8,
-    pub min_log2_rows: u8,
-    pub max_log2_rows: u8,
-    pub log2_rows: u8,
-    pub rows: u8,
-    pub col_start_sb: [u16; RAV1D_MAX_TILE_COLS + 1],
-    pub row_start_sb: [u16; RAV1D_MAX_TILE_ROWS + 1],
-    pub update: u16,
-}
-
-impl Default for Rav1dFrameHeaderTiling {
+impl Default for Dav1dFrameHeaderTiling {
     fn default() -> Self {
         Self {
             uniform: Default::default(),
@@ -1477,84 +1365,14 @@ impl Default for Rav1dFrameHeaderTiling {
             max_log2_rows: Default::default(),
             log2_rows: Default::default(),
             rows: Default::default(),
-            col_start_sb: [Default::default(); RAV1D_MAX_TILE_COLS + 1],
-            row_start_sb: [Default::default(); RAV1D_MAX_TILE_ROWS + 1],
+            col_start_sb: [Default::default(); DAV1D_MAX_TILE_COLS + 1],
+            row_start_sb: [Default::default(); DAV1D_MAX_TILE_ROWS + 1],
             update: Default::default(),
         }
     }
 }
 
-impl From<Dav1dFrameHeaderTiling> for Rav1dFrameHeaderTiling {
-    fn from(value: Dav1dFrameHeaderTiling) -> Self {
-        let Dav1dFrameHeaderTiling {
-            uniform,
-            n_bytes,
-            min_log2_cols,
-            max_log2_cols,
-            log2_cols,
-            cols,
-            min_log2_rows,
-            max_log2_rows,
-            log2_rows,
-            rows,
-            col_start_sb,
-            row_start_sb,
-            update,
-        } = value;
-        Self {
-            uniform,
-            n_bytes,
-            min_log2_cols,
-            max_log2_cols,
-            log2_cols,
-            cols,
-            min_log2_rows,
-            max_log2_rows,
-            log2_rows,
-            rows,
-            col_start_sb,
-            row_start_sb,
-            update,
-        }
-    }
-}
-
-impl From<Rav1dFrameHeaderTiling> for Dav1dFrameHeaderTiling {
-    fn from(value: Rav1dFrameHeaderTiling) -> Self {
-        let Rav1dFrameHeaderTiling {
-            uniform,
-            n_bytes,
-            min_log2_cols,
-            max_log2_cols,
-            log2_cols,
-            cols,
-            min_log2_rows,
-            max_log2_rows,
-            log2_rows,
-            rows,
-            col_start_sb,
-            row_start_sb,
-            update,
-        } = value;
-        Self {
-            uniform,
-            n_bytes,
-            min_log2_cols,
-            max_log2_cols,
-            log2_cols,
-            cols,
-            min_log2_rows,
-            max_log2_rows,
-            log2_rows,
-            rows,
-            col_start_sb,
-            row_start_sb,
-            update,
-        }
-    }
-}
-
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[repr(C)]
 pub struct Dav1dFrameHeaderQuant {
     pub yac: u8,
@@ -1567,79 +1385,6 @@ pub struct Dav1dFrameHeaderQuant {
     pub qm_y: u8,
     pub qm_u: u8,
     pub qm_v: u8,
-}
-
-#[derive(Clone, Default)]
-#[repr(C)]
-pub struct Rav1dFrameHeaderQuant {
-    pub yac: u8,
-    pub ydc_delta: i8,
-    pub udc_delta: i8,
-    pub uac_delta: i8,
-    pub vdc_delta: i8,
-    pub vac_delta: i8,
-    pub qm: u8,
-    pub qm_y: u8,
-    pub qm_u: u8,
-    pub qm_v: u8,
-}
-
-impl From<Dav1dFrameHeaderQuant> for Rav1dFrameHeaderQuant {
-    fn from(value: Dav1dFrameHeaderQuant) -> Self {
-        let Dav1dFrameHeaderQuant {
-            yac,
-            ydc_delta,
-            udc_delta,
-            uac_delta,
-            vdc_delta,
-            vac_delta,
-            qm,
-            qm_y,
-            qm_u,
-            qm_v,
-        } = value;
-        Self {
-            yac,
-            ydc_delta,
-            udc_delta,
-            uac_delta,
-            vdc_delta,
-            vac_delta,
-            qm,
-            qm_y,
-            qm_u,
-            qm_v,
-        }
-    }
-}
-
-impl From<Rav1dFrameHeaderQuant> for Dav1dFrameHeaderQuant {
-    fn from(value: Rav1dFrameHeaderQuant) -> Self {
-        let Rav1dFrameHeaderQuant {
-            yac,
-            ydc_delta,
-            udc_delta,
-            uac_delta,
-            vdc_delta,
-            vac_delta,
-            qm,
-            qm_y,
-            qm_u,
-            qm_v,
-        } = value;
-        Self {
-            yac,
-            ydc_delta,
-            udc_delta,
-            uac_delta,
-            vdc_delta,
-            vac_delta,
-            qm,
-            qm_y,
-            qm_u,
-            qm_v,
-        }
-    }
 }
 
 #[derive(Clone)]
@@ -1735,7 +1480,7 @@ pub struct Dav1dFrameHeaderDelta {
     pub lf: Dav1dFrameHeaderDeltaLF,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[repr(C)]
 pub struct Dav1dFrameHeaderLoopFilter {
     pub level_y: [u8; 2],
@@ -1749,64 +1494,6 @@ pub struct Dav1dFrameHeaderLoopFilter {
 
 #[derive(Clone, Default)]
 #[repr(C)]
-pub struct Rav1dFrameHeaderLoopFilter {
-    pub level_y: [u8; 2],
-    pub level_u: u8,
-    pub level_v: u8,
-    pub mode_ref_delta_enabled: u8,
-    pub mode_ref_delta_update: u8,
-    pub mode_ref_deltas: Dav1dLoopfilterModeRefDeltas,
-    pub sharpness: u8,
-}
-
-impl From<Dav1dFrameHeaderLoopFilter> for Rav1dFrameHeaderLoopFilter {
-    fn from(value: Dav1dFrameHeaderLoopFilter) -> Self {
-        let Dav1dFrameHeaderLoopFilter {
-            level_y,
-            level_u,
-            level_v,
-            mode_ref_delta_enabled,
-            mode_ref_delta_update,
-            mode_ref_deltas,
-            sharpness,
-        } = value;
-        Self {
-            level_y,
-            level_u,
-            level_v,
-            mode_ref_delta_enabled,
-            mode_ref_delta_update,
-            mode_ref_deltas: mode_ref_deltas.into(),
-            sharpness,
-        }
-    }
-}
-
-impl From<Rav1dFrameHeaderLoopFilter> for Dav1dFrameHeaderLoopFilter {
-    fn from(value: Rav1dFrameHeaderLoopFilter) -> Self {
-        let Rav1dFrameHeaderLoopFilter {
-            level_y,
-            level_u,
-            level_v,
-            mode_ref_delta_enabled,
-            mode_ref_delta_update,
-            mode_ref_deltas,
-            sharpness,
-        } = value;
-        Self {
-            level_y,
-            level_u,
-            level_v,
-            mode_ref_delta_enabled,
-            mode_ref_delta_update,
-            mode_ref_deltas: mode_ref_deltas.into(),
-            sharpness,
-        }
-    }
-}
-
-#[derive(Clone, Default)]
-#[repr(C)]
 pub struct Dav1dFrameHeaderCdef {
     pub damping: u8,
     pub n_bits: u8,
@@ -1814,38 +1501,11 @@ pub struct Dav1dFrameHeaderCdef {
     pub uv_strength: [u8; DAV1D_MAX_CDEF_STRENGTHS],
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[repr(C)]
 pub struct Dav1dFrameHeaderRestoration {
     pub r#type: [Dav1dRestorationType; 3],
     pub unit_size: [u8; 2],
-}
-
-#[derive(Clone, Default)]
-#[repr(C)]
-pub struct Rav1dFrameHeaderRestoration {
-    pub r#type: [Rav1dRestorationType; 3],
-    pub unit_size: [u8; 2],
-}
-
-impl From<Dav1dFrameHeaderRestoration> for Rav1dFrameHeaderRestoration {
-    fn from(value: Dav1dFrameHeaderRestoration) -> Self {
-        let Dav1dFrameHeaderRestoration { r#type, unit_size } = value;
-        Self {
-            r#type: r#type.map(|e| Rav1dRestorationType::from_repr(e as usize).unwrap()),
-            unit_size,
-        }
-    }
-}
-
-impl From<Rav1dFrameHeaderRestoration> for Dav1dFrameHeaderRestoration {
-    fn from(value: Rav1dFrameHeaderRestoration) -> Self {
-        let Rav1dFrameHeaderRestoration { r#type, unit_size } = value;
-        Self {
-            r#type: r#type.map(|e| e.to_repr()),
-            unit_size,
-        }
-    }
 }
 
 #[derive(Clone)]
@@ -1910,7 +1570,7 @@ pub struct Rav1dFrameSize {
     pub height: c_int,
     pub render_width: c_int,
     pub render_height: c_int,
-    pub super_res: Rav1dFrameHeaderSuperRes,
+    pub super_res: Dav1dFrameHeaderSuperRes,
     pub have_render_size: u8,
 }
 
@@ -1919,7 +1579,7 @@ pub struct Rav1dFrameSize {
 pub struct Rav1dFrameHeader {
     pub size: Rav1dFrameSize,
     pub film_grain: Rav1dFrameHeaderFilmGrain,
-    pub frame_type: Rav1dFrameType,
+    pub frame_type: Dav1dFrameType,
     pub frame_offset: u8,
     pub temporal_id: u8,
     pub spatial_id: u8,
@@ -1936,32 +1596,32 @@ pub struct Rav1dFrameHeader {
     pub frame_size_override: bool,
     pub primary_ref_frame: u8,
     pub buffer_removal_time_present: u8,
-    pub operating_points: [Rav1dFrameHeaderOperatingPoint; RAV1D_MAX_OPERATING_POINTS],
+    pub operating_points: [Dav1dFrameHeaderOperatingPoint; DAV1D_MAX_OPERATING_POINTS],
     pub refresh_frame_flags: u8,
     pub allow_intrabc: bool,
     pub frame_ref_short_signaling: u8,
-    pub refidx: [i8; RAV1D_REFS_PER_FRAME],
+    pub refidx: [i8; DAV1D_REFS_PER_FRAME],
     pub hp: bool,
     pub subpel_filter_mode: Rav1dFilterMode,
     pub switchable_motion_mode: u8,
     pub use_ref_frame_mvs: u8,
     pub refresh_context: u8,
-    pub tiling: Rav1dFrameHeaderTiling,
-    pub quant: Rav1dFrameHeaderQuant,
+    pub tiling: Dav1dFrameHeaderTiling,
+    pub quant: Dav1dFrameHeaderQuant,
     pub segmentation: Rav1dFrameHeaderSegmentation,
     pub delta: Dav1dFrameHeaderDelta,
     pub all_lossless: bool,
-    pub loopfilter: Rav1dFrameHeaderLoopFilter,
+    pub loopfilter: Dav1dFrameHeaderLoopFilter,
     pub cdef: Dav1dFrameHeaderCdef,
-    pub restoration: Rav1dFrameHeaderRestoration,
-    pub txfm_mode: Rav1dTxfmMode,
+    pub restoration: Dav1dFrameHeaderRestoration,
+    pub txfm_mode: Dav1dTxfmMode,
     pub switchable_comp_refs: u8,
     pub skip_mode_allowed: u8,
     pub skip_mode_enabled: u8,
     pub skip_mode_refs: [i8; 2],
     pub warp_motion: u8,
     pub reduced_txtp_set: u8,
-    pub gmv: [Rav1dWarpedMotionParams; RAV1D_REFS_PER_FRAME],
+    pub gmv: [Rav1dWarpedMotionParams; DAV1D_REFS_PER_FRAME],
 }
 
 impl From<Dav1dFrameHeader> for Rav1dFrameHeader {

@@ -48,13 +48,13 @@ use crate::include::common::intops::clip;
 use crate::include::common::intops::clip_u8;
 use crate::include::common::intops::iclip;
 use crate::include::dav1d::common::Rav1dDataProps;
+use crate::include::dav1d::headers::Dav1dFrameHeaderTiling;
+use crate::include::dav1d::headers::Dav1dRestorationType;
 use crate::include::dav1d::headers::Dav1dSequenceHeader;
+use crate::include::dav1d::headers::Dav1dTxfmMode;
 use crate::include::dav1d::headers::Rav1dFilterMode;
 use crate::include::dav1d::headers::Rav1dFrameHeader;
-use crate::include::dav1d::headers::Rav1dFrameHeaderTiling;
 use crate::include::dav1d::headers::Rav1dPixelLayout;
-use crate::include::dav1d::headers::Rav1dRestorationType;
-use crate::include::dav1d::headers::Rav1dTxfmMode;
 use crate::include::dav1d::headers::Rav1dWarpedMotionParams;
 use crate::include::dav1d::headers::Rav1dWarpedMotionType;
 use crate::include::dav1d::headers::SgrIdx;
@@ -807,7 +807,7 @@ fn read_vartx_tree(
     {
         uvtx = TxfmSize::S4x4;
         max_ytx = uvtx;
-        if txfm_mode == Rav1dTxfmMode::Switchable {
+        if txfm_mode == Dav1dTxfmMode::Switchable {
             CaseSet::<32, false>::many(
                 [&t.l, &f.a[t.a]],
                 [bh4 as usize, bw4 as usize],
@@ -817,8 +817,8 @@ fn read_vartx_tree(
                 },
             );
         }
-    } else if txfm_mode != Rav1dTxfmMode::Switchable || b.skip != 0 {
-        if txfm_mode == Rav1dTxfmMode::Switchable {
+    } else if txfm_mode != Dav1dTxfmMode::Switchable || b.skip != 0 {
+        if txfm_mode == Dav1dTxfmMode::Switchable {
             CaseSet::<32, false>::many(
                 [(&t.l, 1), (&f.a[t.a], 0)],
                 [bh4 as usize, bw4 as usize],
@@ -1891,7 +1891,7 @@ fn decode_b(
             let mut tx = DAV1D_MAX_TXFM_SIZE_FOR_BS[bs as usize][0];
             b.uvtx = DAV1D_MAX_TXFM_SIZE_FOR_BS[bs as usize][f.cur.p.layout as usize];
             let mut t_dim = &DAV1D_TXFM_DIMENSIONS[tx as usize];
-            if frame_hdr.txfm_mode == Rav1dTxfmMode::Switchable && t_dim.max > TxfmSize::S4x4 as _ {
+            if frame_hdr.txfm_mode == Dav1dTxfmMode::Switchable && t_dim.max > TxfmSize::S4x4 as _ {
                 let tctx = get_tx_ctx(ta, &t.l, t_dim, by4, bx4);
                 let tx_cdf = &mut ts_c.cdf.m.txsz[(t_dim.max - 1) as usize][tctx as usize];
                 let depth =
@@ -3964,13 +3964,13 @@ fn read_restoration_info(
     ts: &Rav1dTileState,
     lr: &mut Av1RestorationUnit,
     p: usize,
-    frame_type: Rav1dRestorationType,
+    frame_type: Dav1dRestorationType,
     debug_block_info: bool,
 ) {
     let ts_c = &mut *ts.context.try_lock().unwrap();
     let lr_ref = ts.lr_ref.try_read().unwrap()[p];
 
-    if frame_type == Rav1dRestorationType::Switchable {
+    if frame_type == Dav1dRestorationType::Switchable {
         let filter = rav1d_msac_decode_symbol_adapt4(
             &mut ts_c.msac,
             &mut ts_c.cdf.m.restore_switchable.0,
@@ -3978,17 +3978,17 @@ fn read_restoration_info(
         );
         lr.r#type = if filter != 0 {
             if filter == 2 {
-                Rav1dRestorationType::SgrProj(SgrIdx::I0)
+                Dav1dRestorationType::SgrProj(SgrIdx::I0)
             } else {
-                Rav1dRestorationType::Wiener
+                Dav1dRestorationType::Wiener
             }
         } else {
-            Rav1dRestorationType::None
+            Dav1dRestorationType::None
         };
     } else {
         let r#type = rav1d_msac_decode_bool_adapt(
             &mut ts_c.msac,
-            if frame_type == Rav1dRestorationType::Wiener {
+            if frame_type == Dav1dRestorationType::Wiener {
                 &mut ts_c.cdf.m.restore_wiener.0
             } else {
                 &mut ts_c.cdf.m.restore_sgrproj.0
@@ -3997,7 +3997,7 @@ fn read_restoration_info(
         lr.r#type = if r#type {
             frame_type
         } else {
-            Rav1dRestorationType::None
+            Dav1dRestorationType::None
         };
     }
 
@@ -4012,7 +4012,7 @@ fn read_restoration_info(
     }
 
     match lr.r#type {
-        Rav1dRestorationType::Wiener => {
+        Dav1dRestorationType::Wiener => {
             lr.filter_v[0] = if p != 0 {
                 0
             } else {
@@ -4044,11 +4044,10 @@ fn read_restoration_info(
                 );
             }
         }
-        Rav1dRestorationType::SgrProj(_) => {
-            let sgr_idx =
-                SgrIdx::from_repr(rav1d_msac_decode_bools(&mut ts_c.msac, 4) as usize).unwrap();
+        Dav1dRestorationType::SgrProj(_) => {
+            let sgr_idx = SgrIdx::from_repr(rav1d_msac_decode_bools(&mut ts_c.msac, 4) as u8).unwrap();
             let sgr_params = &DAV1D_SGR_PARAMS[sgr_idx as usize];
-            lr.r#type = Rav1dRestorationType::SgrProj(sgr_idx);
+            lr.r#type = Dav1dRestorationType::SgrProj(sgr_idx);
             lr.sgr_weights[0] = if sgr_params[0] != 0 {
                 msac_decode_lr_subexp(ts_c, lr_ref.sgr_weights[0], 4, 96)
             } else {
@@ -4558,7 +4557,7 @@ pub(crate) fn rav1d_decode_frame_init(c: &Rav1dContext, fc: &Rav1dFrameContext) 
             .r#type
             .iter()
             .enumerate()
-            .map(|(i, &r#type)| ((r#type != Rav1dRestorationType::None) as u8) << i)
+            .map(|(i, &r#type)| ((r#type != Dav1dRestorationType::None) as u8) << i)
             .sum::<u8>(),
     );
     if frame_hdr.loopfilter.sharpness != f.lf.last_sharpness {
@@ -4775,7 +4774,7 @@ fn rav1d_decode_frame_main(c: &Rav1dContext, f: &mut Rav1dFrameData) -> Rav1dRes
 
     // no threading - we explicitly interleave tile/sbrow decoding
     // and post-filtering, so that the full process runs in-line
-    let Rav1dFrameHeaderTiling { rows, cols, .. } = frame_hdr.tiling;
+    let Dav1dFrameHeaderTiling { rows, cols, .. } = frame_hdr.tiling;
     let [rows, cols] = [rows, cols].map(|it| it.try_into().unwrap());
     // Need to clone this because `(f.bd_fn().filter_sbrow)(f, sby);` takes a `&mut` to `f` within the loop.
     let row_start_sb = frame_hdr.tiling.row_start_sb.clone();

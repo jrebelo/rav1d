@@ -2841,7 +2841,7 @@ pub(crate) fn rav1d_recon_b_inter<BD: BitDepth>(
     let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
     if frame_hdr.frame_type.is_key_or_intra() {
         // intrabc
-        assert!(!frame_hdr.size.super_res.enabled);
+        assert!(!frame_hdr.size.super_res.is_enabled());
         let scratch = t.scratch.inter_mut();
         mc::<BD>(
             f,

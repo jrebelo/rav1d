@@ -3,7 +3,7 @@
 use crate::align::Align16;
 use crate::include::common::bitdepth::BitDepth;
 use crate::include::dav1d::headers::Rav1dPixelLayout;
-use crate::include::dav1d::headers::Rav1dRestorationType;
+use crate::include::dav1d::headers::Dav1dRestorationType;
 use crate::include::dav1d::picture::Rav1dPictureDataComponentOffset;
 use crate::internal::Rav1dContext;
 use crate::internal::Rav1dFrameData;
@@ -59,7 +59,7 @@ fn lr_stripe<BD: BitDepth>(
 
     let mut params = LooprestorationParams::default();
     let lr_fn;
-    if lr.r#type == Rav1dRestorationType::Wiener {
+    if lr.r#type == Dav1dRestorationType::Wiener {
         let filter = &mut params.filter;
         filter[0][0] = lr.filter_h[0] as i16;
         filter[0][1] = lr.filter_h[1] as i16;
@@ -84,7 +84,7 @@ fn lr_stripe<BD: BitDepth>(
 
         lr_fn = f.dsp.lr.wiener[((filter[0][0] | filter[1][0]) == 0) as usize];
     } else {
-        let sgr_idx = assert_matches!(lr.r#type, Rav1dRestorationType::SgrProj(idx) => idx);
+        let sgr_idx = assert_matches!(lr.r#type, Dav1dRestorationType::SgrProj(idx) => idx);
         let sgr_params = &DAV1D_SGR_PARAMS[sgr_idx as usize];
         *params.sgr_mut() = LooprestorationParamsSgr {
             s0: sgr_params[0] as u32,
@@ -187,7 +187,7 @@ fn lr_sbrow<BD: BitDepth>(
     lr[0] = *f.lf.lr_mask[sb_idx as usize].lr[plane as usize][unit_idx as usize]
         .try_read()
         .unwrap();
-    let mut restore = lr[0].r#type != Rav1dRestorationType::None;
+    let mut restore = lr[0].r#type != Dav1dRestorationType::None;
     let mut x = 0;
     let mut bit = false;
     while x + max_unit_size <= w {
@@ -197,7 +197,7 @@ fn lr_sbrow<BD: BitDepth>(
             [plane as usize][next_u_idx as usize]
             .try_read()
             .unwrap();
-        let restore_next = lr[!bit as usize].r#type != Rav1dRestorationType::None;
+        let restore_next = lr[!bit as usize].r#type != Dav1dRestorationType::None;
         if restore_next {
             backup_4xu::<BD>(
                 &mut pre_lr_border[bit as usize],

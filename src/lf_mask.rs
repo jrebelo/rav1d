@@ -7,7 +7,7 @@ use crate::include::common::intops::iclip;
 use crate::include::dav1d::headers::Dav1dLoopfilterModeRefDeltas;
 use crate::include::dav1d::headers::Rav1dFrameHeader;
 use crate::include::dav1d::headers::Rav1dPixelLayout;
-use crate::include::dav1d::headers::Rav1dRestorationType;
+use crate::include::dav1d::headers::Dav1dRestorationType;
 use crate::internal::Bxy;
 use crate::levels::BlockSize;
 use crate::levels::SegmentId;
@@ -47,7 +47,7 @@ impl ArrayDefault for Av1FilterLUT {
 #[repr(C)]
 pub struct Av1RestorationUnit {
     /// SGR: type = DAV1D_RESTORATION_SGRPROJ + sgr_idx
-    pub r#type: Rav1dRestorationType,
+    pub r#type: Dav1dRestorationType,
     pub filter_h: [i8; 3],
     pub filter_v: [i8; 3],
     pub sgr_weights: [i8; 2],
