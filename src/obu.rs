@@ -14,6 +14,8 @@ use crate::include::dav1d::common::Rav1dDataProps;
 use crate::include::dav1d::data::Rav1dData;
 use crate::include::dav1d::dav1d::Rav1dDecodeFrameType;
 use crate::include::dav1d::headers::DRav1d;
+use crate::include::dav1d::headers::Dav1dFrameHeaderDelta;
+use crate::include::dav1d::headers::Dav1dFrameHeaderDeltaLF;
 use crate::include::dav1d::headers::Dav1dFrameHeaderDeltaQ;
 use crate::include::dav1d::headers::Dav1dSequenceHeader;
 use crate::include::dav1d::headers::Dav1dSequenceHeaderOperatingParameterInfo;
@@ -26,8 +28,6 @@ use crate::include::dav1d::headers::Rav1dFilmGrainData;
 use crate::include::dav1d::headers::Rav1dFilterMode;
 use crate::include::dav1d::headers::Rav1dFrameHeader;
 use crate::include::dav1d::headers::Rav1dFrameHeaderCdef;
-use crate::include::dav1d::headers::Rav1dFrameHeaderDelta;
-use crate::include::dav1d::headers::Rav1dFrameHeaderDeltaLF;
 use crate::include::dav1d::headers::Rav1dFrameHeaderFilmGrain;
 use crate::include::dav1d::headers::Rav1dFrameHeaderLoopFilter;
 use crate::include::dav1d::headers::Rav1dFrameHeaderOperatingPoint;
@@ -1210,7 +1210,7 @@ fn parse_delta(
     allow_intrabc: bool,
     debug: &Debug,
     gb: &mut GetBits,
-) -> Rav1dFrameHeaderDelta {
+) -> Dav1dFrameHeaderDelta {
     let q = {
         let present = if quant.yac != 0 {
             gb.get_bit() as u8
@@ -1232,14 +1232,14 @@ fn parse_delta(
             0
         };
         let multi = if present != 0 { gb.get_bit() as u8 } else { 0 };
-        Rav1dFrameHeaderDeltaLF {
+        Dav1dFrameHeaderDeltaLF {
             present,
             res_log2,
             multi,
         }
     };
     debug.post(gb, "delta_q_lf_flags");
-    Rav1dFrameHeaderDelta { q, lf }
+    Dav1dFrameHeaderDelta { q, lf }
 }
 
 fn parse_loopfilter(

@@ -1888,7 +1888,7 @@ pub struct Dav1dFrameHeaderDeltaQ {
     pub res_log2: u8,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[repr(C)]
 pub struct Dav1dFrameHeaderDeltaLF {
     pub present: u8,
@@ -1898,74 +1898,9 @@ pub struct Dav1dFrameHeaderDeltaLF {
 
 #[derive(Clone, Default)]
 #[repr(C)]
-pub struct Rav1dFrameHeaderDeltaLF {
-    pub present: u8,
-    pub res_log2: u8,
-    pub multi: u8,
-}
-
-impl From<Dav1dFrameHeaderDeltaLF> for Rav1dFrameHeaderDeltaLF {
-    fn from(value: Dav1dFrameHeaderDeltaLF) -> Self {
-        let Dav1dFrameHeaderDeltaLF {
-            present,
-            res_log2,
-            multi,
-        } = value;
-        Self {
-            present,
-            res_log2,
-            multi,
-        }
-    }
-}
-
-impl From<Rav1dFrameHeaderDeltaLF> for Dav1dFrameHeaderDeltaLF {
-    fn from(value: Rav1dFrameHeaderDeltaLF) -> Self {
-        let Rav1dFrameHeaderDeltaLF {
-            present,
-            res_log2,
-            multi,
-        } = value;
-        Self {
-            present,
-            res_log2,
-            multi,
-        }
-    }
-}
-
-#[derive(Clone)]
-#[repr(C)]
 pub struct Dav1dFrameHeaderDelta {
     pub q: Dav1dFrameHeaderDeltaQ,
     pub lf: Dav1dFrameHeaderDeltaLF,
-}
-
-#[derive(Clone, Default)]
-#[repr(C)]
-pub struct Rav1dFrameHeaderDelta {
-    pub q: Dav1dFrameHeaderDeltaQ,
-    pub lf: Rav1dFrameHeaderDeltaLF,
-}
-
-impl From<Dav1dFrameHeaderDelta> for Rav1dFrameHeaderDelta {
-    fn from(value: Dav1dFrameHeaderDelta) -> Self {
-        let Dav1dFrameHeaderDelta { q, lf } = value;
-        Self {
-            q: q.into(),
-            lf: lf.into(),
-        }
-    }
-}
-
-impl From<Rav1dFrameHeaderDelta> for Dav1dFrameHeaderDelta {
-    fn from(value: Rav1dFrameHeaderDelta) -> Self {
-        let Rav1dFrameHeaderDelta { q, lf } = value;
-        Self {
-            q: q.into(),
-            lf: lf.into(),
-        }
-    }
 }
 
 #[derive(Clone)]
@@ -2233,7 +2168,7 @@ pub struct Rav1dFrameHeader {
     pub tiling: Rav1dFrameHeaderTiling,
     pub quant: Rav1dFrameHeaderQuant,
     pub segmentation: Rav1dFrameHeaderSegmentation,
-    pub delta: Rav1dFrameHeaderDelta,
+    pub delta: Dav1dFrameHeaderDelta,
     pub all_lossless: bool,
     pub loopfilter: Rav1dFrameHeaderLoopFilter,
     pub cdef: Rav1dFrameHeaderCdef,
