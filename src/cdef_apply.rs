@@ -163,7 +163,7 @@ pub(crate) fn rav1d_cdef_brow<BD: BitDepth>(
     let mut ptrs = p;
     let sbsz = 16;
     let sb64w = f.sb128w << 1;
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap();
     let damping = frame_hdr.cdef.damping + bitdepth_min_8;
     let layout: Rav1dPixelLayout = f.cur.p.layout;
     let uv_idx = (Rav1dPixelLayout::I444 as c_uint).wrapping_sub(layout as c_uint) as c_int;
@@ -175,7 +175,7 @@ pub(crate) fn rav1d_cdef_brow<BD: BitDepth>(
 
     let have_tt = c.tc.len() > 1;
     let sb128 = f.seq_hdr.as_ref().unwrap().sb128;
-    let resize = frame_hdr.size.width[0] != frame_hdr.size.width[1];
+    let resize = frame_hdr.width[0] != frame_hdr.width[1];
     let y_stride: ptrdiff_t = BD::pxstride(f.cur.stride[0]);
     let uv_stride: ptrdiff_t = BD::pxstride(f.cur.stride[1]);
 

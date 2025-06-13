@@ -8,52 +8,9 @@ use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::ops::BitAnd;
-use std::ops::Deref;
 use std::ops::Sub;
 use strum::EnumCount;
 use strum::FromRepr;
-
-/// This is so we can store both `*mut D` and `*mut R`
-/// for maintaining `dav1d` ABI compatibility,
-/// where `D` is the `Dav1d*` type and `R` is the `Rav1d` type.
-pub struct DRav1d<R, D> {
-    pub rav1d: R,
-    pub dav1d: D,
-}
-
-impl<R, D> DRav1d<R, D>
-where
-    R: Clone + Into<D>,
-{
-    pub fn from_rav1d(rav1d: R) -> Self {
-        let dav1d = rav1d.clone().into();
-        Self { rav1d, dav1d }
-    }
-}
-
-/// Since the `D`/`Dav1d*` type is only used externally by C,
-/// it's reasonable to `.deref()`
-/// to the `R`/`Rav1d*` type used everywhere internally.
-impl<R, D> Deref for DRav1d<R, D> {
-    type Target = R;
-
-    fn deref(&self) -> &Self::Target {
-        &self.rav1d
-    }
-}
-
-impl<R, D> Default for DRav1d<R, D>
-where
-    R: Default,
-    D: Default,
-{
-    fn default() -> Self {
-        Self {
-            rav1d: Default::default(),
-            dav1d: Default::default(),
-        }
-    }
-}
 
 // Constants from Section 3. "Symbols and abbreviated terms"
 pub const DAV1D_MAX_CDEF_STRENGTHS: usize = 8;
@@ -103,19 +60,17 @@ pub enum Dav1dTxfmMode {
     Switchable = 2,
 }
 
-pub type Dav1dFilterMode = u8;
-pub const DAV1D_N_SWITCHABLE_FILTERS: usize = Rav1dFilterMode::N_SWITCHABLE_FILTERS as usize;
-pub const DAV1D_N_FILTERS: usize = Rav1dFilterMode::N_FILTERS as usize;
-pub const DAV1D_FILTER_SWITCHABLE: Dav1dFilterMode = Rav1dFilterMode::Switchable as Dav1dFilterMode;
-pub const DAV1D_FILTER_BILINEAR: Dav1dFilterMode = Rav1dFilterMode::Bilinear as Dav1dFilterMode;
-pub const DAV1D_FILTER_8TAP_SHARP: Dav1dFilterMode = Rav1dFilterMode::Sharp8Tap as Dav1dFilterMode;
-pub const DAV1D_FILTER_8TAP_SMOOTH: Dav1dFilterMode =
-    Rav1dFilterMode::Smooth8Tap as Dav1dFilterMode;
-pub const DAV1D_FILTER_8TAP_REGULAR: Dav1dFilterMode =
-    Rav1dFilterMode::Regular8Tap as Dav1dFilterMode;
+pub const DAV1D_N_SWITCHABLE_FILTERS: usize = Dav1dFilterMode::N_SWITCHABLE_FILTERS as usize;
+pub const DAV1D_N_FILTERS: usize = Dav1dFilterMode::N_FILTERS as usize;
+pub const DAV1D_FILTER_SWITCHABLE: u8 = Dav1dFilterMode::Switchable as u8;
+pub const DAV1D_FILTER_BILINEAR: u8 = Dav1dFilterMode::Bilinear as u8;
+pub const DAV1D_FILTER_8TAP_SHARP: u8 = Dav1dFilterMode::Sharp8Tap as u8;
+pub const DAV1D_FILTER_8TAP_SMOOTH: u8 = Dav1dFilterMode::Smooth8Tap as u8;
+pub const DAV1D_FILTER_8TAP_REGULAR: u8 = Dav1dFilterMode::Regular8Tap as u8;
 
 #[derive(Clone, Copy, PartialEq, Eq, FromRepr, Default, Debug)]
-pub enum Rav1dFilterMode {
+#[repr(u8)]
+pub enum Dav1dFilterMode {
     #[default] // Not really a real default.
     Regular8Tap = 0,
     Smooth8Tap = 1,
@@ -124,29 +79,15 @@ pub enum Rav1dFilterMode {
     Switchable = 4,
 }
 
-impl ArrayDefault for Rav1dFilterMode {
+impl ArrayDefault for Dav1dFilterMode {
     fn default() -> Self {
         Default::default()
     }
 }
 
-impl Rav1dFilterMode {
+impl Dav1dFilterMode {
     pub const N_FILTERS: usize = 4;
     pub const N_SWITCHABLE_FILTERS: Self = Self::Bilinear;
-}
-
-impl From<Rav1dFilterMode> for Dav1dFilterMode {
-    fn from(value: Rav1dFilterMode) -> Self {
-        value as Dav1dFilterMode
-    }
-}
-
-impl TryFrom<Dav1dFilterMode> for Rav1dFilterMode {
-    type Error = ();
-
-    fn try_from(value: Dav1dFilterMode) -> Result<Self, Self::Error> {
-        Self::from_repr(value as usize).ok_or(())
-    }
 }
 
 pub type Dav1dAdaptiveBoolean = c_uint;
@@ -917,7 +858,7 @@ impl Dav1dSequenceHeader {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[repr(C)]
 pub struct Dav1dSegmentationData {
     pub delta_q: i16,
@@ -932,111 +873,10 @@ pub struct Dav1dSegmentationData {
 
 #[derive(Clone, Default)]
 #[repr(C)]
-pub struct Rav1dSegmentationData {
-    pub delta_q: i16,
-    pub delta_lf_y_v: i8,
-    pub delta_lf_y_h: i8,
-    pub delta_lf_u: i8,
-    pub delta_lf_v: i8,
-    pub r#ref: i8,
-    pub skip: u8,
-    pub globalmv: u8,
-}
-
-impl From<Dav1dSegmentationData> for Rav1dSegmentationData {
-    fn from(value: Dav1dSegmentationData) -> Self {
-        let Dav1dSegmentationData {
-            delta_q,
-            delta_lf_y_v,
-            delta_lf_y_h,
-            delta_lf_u,
-            delta_lf_v,
-            r#ref,
-            skip,
-            globalmv,
-        } = value;
-        Self {
-            delta_q,
-            delta_lf_y_v,
-            delta_lf_y_h,
-            delta_lf_u,
-            delta_lf_v,
-            r#ref,
-            skip,
-            globalmv,
-        }
-    }
-}
-
-impl From<Rav1dSegmentationData> for Dav1dSegmentationData {
-    fn from(value: Rav1dSegmentationData) -> Self {
-        let Rav1dSegmentationData {
-            delta_q,
-            delta_lf_y_v,
-            delta_lf_y_h,
-            delta_lf_u,
-            delta_lf_v,
-            r#ref,
-            skip,
-            globalmv,
-        } = value;
-        Self {
-            delta_q,
-            delta_lf_y_v,
-            delta_lf_y_h,
-            delta_lf_u,
-            delta_lf_v,
-            r#ref,
-            skip,
-            globalmv,
-        }
-    }
-}
-
-#[derive(Clone)]
-#[repr(C)]
 pub struct Dav1dSegmentationDataSet {
     pub d: [Dav1dSegmentationData; DAV1D_MAX_SEGMENTS as usize],
     pub preskip: u8,
     pub last_active_segid: i8,
-}
-
-#[derive(Clone, Default)]
-#[repr(C)]
-pub struct Rav1dSegmentationDataSet {
-    pub d: [Rav1dSegmentationData; SegmentId::COUNT],
-    pub preskip: u8,
-    pub last_active_segid: i8,
-}
-
-impl From<Dav1dSegmentationDataSet> for Rav1dSegmentationDataSet {
-    fn from(value: Dav1dSegmentationDataSet) -> Self {
-        let Dav1dSegmentationDataSet {
-            d,
-            preskip,
-            last_active_segid,
-        } = value;
-        Self {
-            d: d.map(|c| c.into()),
-            preskip,
-            last_active_segid,
-        }
-    }
-}
-
-impl From<Rav1dSegmentationDataSet> for Dav1dSegmentationDataSet {
-    fn from(value: Rav1dSegmentationDataSet) -> Self {
-        let Rav1dSegmentationDataSet {
-            d,
-            preskip,
-            last_active_segid,
-        } = value;
-        Self {
-            d: d.map(|rust| rust.into()),
-            preskip,
-            last_active_segid,
-        }
-    }
 }
 
 #[derive(Clone, Default)]
@@ -1046,30 +886,9 @@ pub struct Dav1dLoopfilterModeRefDeltas {
     pub ref_delta: [i8; DAV1D_TOTAL_REFS_PER_FRAME],
 }
 
-#[derive(Clone, Default)]
-pub struct Rav1dFilmGrainData {
-    pub seed: c_uint,
-    pub num_y_points: c_int,
-    pub y_points: [[u8; 2]; 14],
-    pub chroma_scaling_from_luma: bool,
-    pub num_uv_points: [c_int; 2],
-    pub uv_points: [[[u8; 2]; 10]; 2],
-    pub scaling_shift: u8,
-    pub ar_coeff_lag: c_int,
-    pub ar_coeffs_y: [i8; 24],
-    pub ar_coeffs_uv: [[i8; 28]; 2],
-    pub ar_coeff_shift: u8,
-    pub grain_scale_shift: u8,
-    pub uv_mult: [c_int; 2],
-    pub uv_luma_mult: [c_int; 2],
-    pub uv_offset: [c_int; 2],
-    pub overlap_flag: bool,
-    pub clip_to_restricted_range: bool,
-}
-
 /// Must be 16-byte aligned for `psrad` on [`Self::ar_coeff_shift`].
 /// See the docs for [`Self::ar_coeff_shift`] for an explanation.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[repr(C)]
 #[repr(align(16))]
 pub struct Dav1dFilmGrainData {
@@ -1127,136 +946,12 @@ pub struct Dav1dFilmGrainData {
     pub clip_to_restricted_range: c_int,
 }
 
-impl From<Dav1dFilmGrainData> for Rav1dFilmGrainData {
-    fn from(value: Dav1dFilmGrainData) -> Self {
-        let Dav1dFilmGrainData {
-            seed,
-            num_y_points,
-            y_points,
-            chroma_scaling_from_luma,
-            num_uv_points,
-            uv_points,
-            scaling_shift,
-            ar_coeff_lag,
-            ar_coeffs_y,
-            ar_coeffs_uv,
-            ar_coeff_shift,
-            grain_scale_shift,
-            uv_mult,
-            uv_luma_mult,
-            uv_offset,
-            overlap_flag,
-            clip_to_restricted_range,
-        } = value;
-        Self {
-            seed,
-            num_y_points,
-            y_points,
-            chroma_scaling_from_luma: chroma_scaling_from_luma != 0,
-            num_uv_points,
-            uv_points,
-            scaling_shift: scaling_shift as u8,
-            ar_coeff_lag,
-            ar_coeffs_y,
-            ar_coeffs_uv,
-            ar_coeff_shift: ar_coeff_shift as u8,
-            grain_scale_shift: grain_scale_shift as u8,
-            uv_mult,
-            uv_luma_mult,
-            uv_offset,
-            overlap_flag: overlap_flag != 0,
-            clip_to_restricted_range: clip_to_restricted_range != 0,
-        }
-    }
-}
-
-impl From<Rav1dFilmGrainData> for Dav1dFilmGrainData {
-    fn from(value: Rav1dFilmGrainData) -> Self {
-        let Rav1dFilmGrainData {
-            seed,
-            num_y_points,
-            y_points,
-            chroma_scaling_from_luma,
-            num_uv_points,
-            uv_points,
-            scaling_shift,
-            ar_coeff_lag,
-            ar_coeffs_y,
-            ar_coeffs_uv,
-            ar_coeff_shift,
-            grain_scale_shift,
-            uv_mult,
-            uv_luma_mult,
-            uv_offset,
-            overlap_flag,
-            clip_to_restricted_range,
-        } = value;
-        Self {
-            seed,
-            num_y_points,
-            y_points,
-            chroma_scaling_from_luma: chroma_scaling_from_luma as c_int,
-            num_uv_points,
-            uv_points,
-            scaling_shift: scaling_shift.into(),
-            ar_coeff_lag,
-            ar_coeffs_y,
-            ar_coeffs_uv,
-            ar_coeff_shift: ar_coeff_shift.into(),
-            grain_scale_shift: grain_scale_shift.into(),
-            uv_mult,
-            uv_luma_mult,
-            uv_offset,
-            overlap_flag: overlap_flag as c_int,
-            clip_to_restricted_range: clip_to_restricted_range as c_int,
-        }
-    }
-}
-
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[repr(C)]
 pub struct Dav1dFrameHeaderFilmGrain {
     pub data: Dav1dFilmGrainData,
     pub present: u8,
     pub update: u8,
-}
-
-#[derive(Clone, Default)]
-#[repr(C)]
-pub struct Rav1dFrameHeaderFilmGrain {
-    pub data: Rav1dFilmGrainData,
-    pub present: u8,
-    pub update: u8,
-}
-
-impl From<Dav1dFrameHeaderFilmGrain> for Rav1dFrameHeaderFilmGrain {
-    fn from(value: Dav1dFrameHeaderFilmGrain) -> Self {
-        let Dav1dFrameHeaderFilmGrain {
-            data,
-            present,
-            update,
-        } = value;
-        Self {
-            data: data.into(),
-            present,
-            update,
-        }
-    }
-}
-
-impl From<Rav1dFrameHeaderFilmGrain> for Dav1dFrameHeaderFilmGrain {
-    fn from(value: Rav1dFrameHeaderFilmGrain) -> Self {
-        let Rav1dFrameHeaderFilmGrain {
-            data,
-            present,
-            update,
-        } = value;
-        Self {
-            data: data.into(),
-            present,
-            update,
-        }
-    }
 }
 
 #[derive(Clone, Copy, Default)]
@@ -1332,7 +1027,7 @@ pub struct Dav1dFrameHeaderQuant {
     pub qm_v: u8,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[repr(C)]
 pub struct Dav1dFrameHeaderSegmentation {
     pub enabled: u8,
@@ -1342,65 +1037,6 @@ pub struct Dav1dFrameHeaderSegmentation {
     pub seg_data: Dav1dSegmentationDataSet,
     pub lossless: [u8; DAV1D_MAX_SEGMENTS as usize],
     pub qidx: [u8; DAV1D_MAX_SEGMENTS as usize],
-}
-
-#[derive(Clone, Default)]
-#[repr(C)]
-pub struct Rav1dFrameHeaderSegmentation {
-    pub enabled: u8,
-    pub update_map: u8,
-    pub temporal: u8,
-    pub update_data: u8,
-    pub seg_data: Rav1dSegmentationDataSet,
-    /// TODO compress `[bool; 8]` into `u8`.
-    pub lossless: [bool; SegmentId::COUNT],
-    pub qidx: [u8; SegmentId::COUNT],
-}
-
-impl From<Dav1dFrameHeaderSegmentation> for Rav1dFrameHeaderSegmentation {
-    fn from(value: Dav1dFrameHeaderSegmentation) -> Self {
-        let Dav1dFrameHeaderSegmentation {
-            enabled,
-            update_map,
-            temporal,
-            update_data,
-            seg_data,
-            lossless,
-            qidx,
-        } = value;
-        Self {
-            enabled,
-            update_map,
-            temporal,
-            update_data,
-            seg_data: seg_data.into(),
-            lossless: lossless.map(|e| e != 0),
-            qidx,
-        }
-    }
-}
-
-impl From<Rav1dFrameHeaderSegmentation> for Dav1dFrameHeaderSegmentation {
-    fn from(value: Rav1dFrameHeaderSegmentation) -> Self {
-        let Rav1dFrameHeaderSegmentation {
-            enabled,
-            update_map,
-            temporal,
-            update_data,
-            seg_data,
-            lossless,
-            qidx,
-        } = value;
-        Self {
-            enabled,
-            update_map,
-            temporal,
-            update_data,
-            seg_data: seg_data.into(),
-            lossless: lossless.map(|e| e as u8),
-            qidx,
-        }
-    }
 }
 
 #[derive(Clone, Default)]
@@ -1453,7 +1089,7 @@ pub struct Dav1dFrameHeaderRestoration {
     pub unit_size: [u8; 2],
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[repr(C)]
 pub struct Dav1dFrameHeader {
     pub film_grain: Dav1dFrameHeaderFilmGrain,
@@ -1523,7 +1159,7 @@ pub struct Rav1dFrameSize {
 #[repr(C)]
 pub struct Rav1dFrameHeader {
     pub size: Rav1dFrameSize,
-    pub film_grain: Rav1dFrameHeaderFilmGrain,
+    pub film_grain: Dav1dFrameHeaderFilmGrain,
     pub frame_type: Dav1dFrameType,
     pub frame_offset: u8,
     pub temporal_id: u8,
@@ -1547,13 +1183,13 @@ pub struct Rav1dFrameHeader {
     pub frame_ref_short_signaling: u8,
     pub refidx: [i8; DAV1D_REFS_PER_FRAME],
     pub hp: bool,
-    pub subpel_filter_mode: Rav1dFilterMode,
+    pub subpel_filter_mode: Dav1dFilterMode,
     pub switchable_motion_mode: u8,
     pub use_ref_frame_mvs: u8,
     pub refresh_context: u8,
     pub tiling: Dav1dFrameHeaderTiling,
     pub quant: Dav1dFrameHeaderQuant,
-    pub segmentation: Rav1dFrameHeaderSegmentation,
+    pub segmentation: Dav1dFrameHeaderSegmentation,
     pub delta: Dav1dFrameHeaderDelta,
     pub all_lossless: bool,
     pub loopfilter: Dav1dFrameHeaderLoopFilter,

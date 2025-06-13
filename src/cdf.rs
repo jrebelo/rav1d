@@ -5,8 +5,8 @@ use crate::align::Align32;
 use crate::align::Align4;
 use crate::align::Align8;
 use crate::error::Rav1dResult;
-use crate::include::dav1d::headers::Rav1dFilterMode;
-use crate::include::dav1d::headers::Rav1dFrameHeader;
+use crate::include::dav1d::headers::Dav1dFilterMode;
+use crate::include::dav1d::headers::Dav1dFrameHeader;
 use crate::levels::BlockLevel;
 use crate::levels::BlockPartition;
 use crate::levels::BlockSize;
@@ -115,7 +115,7 @@ pub struct CdfModeInterContext {
     pub y_mode: Align32<[[u16; N_INTRA_PRED_MODES + 3]; 4]>,
     pub wedge_idx: Align32<[[u16; 16]; 9]>,
     pub comp_inter_mode: Align16<[[u16; N_COMP_INTER_PRED_MODES]; 8]>,
-    pub filter: Align8<[[[u16; Rav1dFilterMode::N_FILTERS]; 8]; 2]>,
+    pub filter: Align8<[[[u16; Dav1dFilterMode::N_FILTERS]; 8]; 2]>,
     pub interintra_mode: Align8<[[u16; 4]; 4]>,
     pub motion_mode: Align8<[[u16; 3 + 1]; BlockSize::COUNT]>,
     pub skip_mode: Align4<[[u16; 2]; 3]>,
@@ -4947,7 +4947,7 @@ static DEFAULT_CDF: CdfDefaultContext = CdfDefaultContext {
 };
 
 pub(crate) fn rav1d_cdf_thread_update(
-    hdr: &Rav1dFrameHeader,
+    hdr: &Dav1dFrameHeader,
     dst: &mut CdfContext,
     src: &CdfContext,
 ) {
@@ -5051,7 +5051,7 @@ pub(crate) fn rav1d_cdf_thread_update(
     update_cdf_3d!(
         2,
         8,
-        Rav1dFilterMode::N_SWITCHABLE_FILTERS as usize - 1,
+        Dav1dFilterMode::N_SWITCHABLE_FILTERS as usize - 1,
         mi.filter
     );
     update_cdf_2d!(4, 3, mi.interintra_mode);

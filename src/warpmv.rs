@@ -48,7 +48,7 @@ fn resolve_divisor_32(d: u32) -> (c_int, c_int) {
     (shift + 14, DIV_LUT[f as usize] as c_int)
 }
 
-pub(crate) fn rav1d_get_shear_params(wm: &Dav1dWarpedMotionParams) -> bool {
+pub(crate) fn rav1d_get_shear_params(wm: &mut Dav1dWarpedMotionParams) -> bool {
     let mat = &wm.matrix;
 
     if mat[2] <= 0 {

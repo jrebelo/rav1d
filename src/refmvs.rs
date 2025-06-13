@@ -14,9 +14,9 @@ use crate::error::Rav1dResult;
 use crate::ffi_safe::FFISafe;
 use crate::include::common::intops::apply_sign;
 use crate::include::common::intops::iclip;
+use crate::include::dav1d::headers::Dav1dFrameHeader;
 use crate::include::dav1d::headers::Dav1dSequenceHeader;
 use crate::include::dav1d::headers::Dav1dWarpedMotionType;
-use crate::include::dav1d::headers::Rav1dFrameHeader;
 use crate::internal::Bxy;
 use crate::intra_edge::EdgeFlags;
 use crate::levels::BlockSize;
@@ -716,7 +716,7 @@ fn add_temporal_candidate(
     rb: RefMvsTemporalBlock,
     r#ref: RefMvsRefPair,
     globalmv: Option<(&mut i32, &[Mv; 2])>,
-    frame_hdr: &Rav1dFrameHeader,
+    frame_hdr: &Dav1dFrameHeader,
 ) {
     if rb.mv.is_invalid() {
         return;
@@ -911,7 +911,7 @@ pub(crate) fn rav1d_refmvs_find(
     edge_flags: EdgeFlags,
     by4: i32,
     bx4: i32,
-    frame_hdr: &Rav1dFrameHeader,
+    frame_hdr: &Dav1dFrameHeader,
 ) {
     let b_dim = bs.dimensions();
     let bw4 = b_dim[0] as i32;
@@ -1601,14 +1601,14 @@ fn save_tmvs_rust(
 pub(crate) fn rav1d_refmvs_init_frame(
     rf: &mut RefMvsFrame,
     seq_hdr: &Dav1dSequenceHeader,
-    frm_hdr: &Rav1dFrameHeader,
+    frm_hdr: &Dav1dFrameHeader,
     ref_poc: &[u32; 7],
     ref_ref_poc: &[[u32; 7]; 7],
     rp_ref: &[Option<DisjointMutArcSlice<RefMvsTemporalBlock>>; 7],
     n_tile_threads: u32,
     n_frame_threads: u32,
 ) -> Rav1dResult {
-    let rp_stride = ((frm_hdr.size.width[0] + 127 & !127) >> 3) as u32;
+    let rp_stride = ((frm_hdr.width[0] + 127 & !127) >> 3) as u32;
     let n_tile_rows = if n_tile_threads > 1 {
         frm_hdr.tiling.rows as u32
     } else {
@@ -1617,8 +1617,8 @@ pub(crate) fn rav1d_refmvs_init_frame(
     let n_blocks = rp_stride * n_tile_rows;
 
     rf.sbsz = 16 << seq_hdr.sb128;
-    rf.iw8 = frm_hdr.size.width[0] + 7 >> 3;
-    rf.ih8 = frm_hdr.size.height + 7 >> 3;
+    rf.iw8 = frm_hdr.width[0] + 7 >> 3;
+    rf.ih8 = frm_hdr.height + 7 >> 3;
     rf.iw4 = rf.iw8 << 1;
     rf.ih4 = rf.ih8 << 1;
     rf.rp_stride = rp_stride;

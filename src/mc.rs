@@ -11,7 +11,7 @@ use crate::include::common::bitdepth::BitDepth;
 use crate::include::common::bitdepth::DynPixel;
 use crate::include::common::intops::clip;
 use crate::include::common::intops::iclip;
-use crate::include::dav1d::headers::Rav1dFilterMode;
+use crate::include::dav1d::headers::Dav1dFilterMode;
 use crate::include::dav1d::headers::Rav1dPixelLayoutSubSampled;
 use crate::include::dav1d::picture::Rav1dPictureDataComponent;
 use crate::include::dav1d::picture::Rav1dPictureDataComponentOffset;
@@ -138,7 +138,7 @@ fn filter_8tap<BD: BitDepth>(
     FilterResult { pixel }
 }
 
-fn get_filter(m: usize, d: usize, filter_type: Rav1dFilterMode) -> Option<&'static [i8; 8]> {
+fn get_filter(m: usize, d: usize, filter_type: Dav1dFilterMode) -> Option<&'static [i8; 8]> {
     let m = m.checked_sub(1)?;
     let i = if d > 4 {
         filter_type as u8
@@ -156,7 +156,7 @@ fn put_8tap_rust<BD: BitDepth>(
     h: usize,
     mx: usize,
     my: usize,
-    (h_filter_type, v_filter_type): (Rav1dFilterMode, Rav1dFilterMode),
+    (h_filter_type, v_filter_type): (Dav1dFilterMode, Dav1dFilterMode),
     bd: BD,
 ) {
     let intermediate_bits = bd.get_intermediate_bits();
@@ -226,7 +226,7 @@ fn put_8tap_scaled_rust<BD: BitDepth>(
     mut my: usize,
     dx: usize,
     dy: usize,
-    (h_filter_type, v_filter_type): (Rav1dFilterMode, Rav1dFilterMode),
+    (h_filter_type, v_filter_type): (Dav1dFilterMode, Dav1dFilterMode),
     bd: BD,
 ) {
     let intermediate_bits = bd.get_intermediate_bits();
@@ -283,7 +283,7 @@ fn prep_8tap_rust<BD: BitDepth>(
     h: usize,
     mx: usize,
     my: usize,
-    (h_filter_type, v_filter_type): (Rav1dFilterMode, Rav1dFilterMode),
+    (h_filter_type, v_filter_type): (Dav1dFilterMode, Dav1dFilterMode),
     bd: BD,
 ) {
     let intermediate_bits = bd.get_intermediate_bits();
@@ -348,7 +348,7 @@ fn prep_8tap_scaled_rust<BD: BitDepth>(
     mut my: usize,
     dx: usize,
     dy: usize,
-    (h_filter_type, v_filter_type): (Rav1dFilterMode, Rav1dFilterMode),
+    (h_filter_type, v_filter_type): (Dav1dFilterMode, Dav1dFilterMode),
     bd: BD,
 ) {
     let intermediate_bits = bd.get_intermediate_bits();

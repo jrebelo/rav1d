@@ -3,7 +3,7 @@ use crate::align::Align4;
 use crate::align::Align64;
 use crate::align::Align8;
 use crate::enum_map::DefaultValue;
-use crate::include::dav1d::headers::Rav1dFilterMode;
+use crate::include::dav1d::headers::Dav1dFilterMode;
 use crate::levels::BlockLevel;
 use crate::levels::BlockPartition;
 use crate::levels::BlockSize;
@@ -553,7 +553,7 @@ pub static DAV1D_TX_TYPE_CLASS: [TxClass; N_TX_TYPES_PLUS_LL] = [
     TxClass::TwoD,
 ];
 
-pub const DAV1D_FILTER_2D: [[Filter2d; Rav1dFilterMode::N_FILTERS]; Rav1dFilterMode::N_FILTERS] = {
+pub const DAV1D_FILTER_2D: [[Filter2d; Dav1dFilterMode::N_FILTERS]; Dav1dFilterMode::N_FILTERS] = {
     use Filter2d::*;
 
     const DEFAULT: Filter2d = Filter2d::Regular8Tap;
@@ -566,17 +566,17 @@ pub const DAV1D_FILTER_2D: [[Filter2d; Rav1dFilterMode::N_FILTERS]; Rav1dFilterM
     ]
 };
 
-pub const DAV1D_FILTER_DIR: [[Rav1dFilterMode; 2]; Filter2d::COUNT] = [
-    [Rav1dFilterMode::Regular8Tap, Rav1dFilterMode::Regular8Tap],
-    [Rav1dFilterMode::Smooth8Tap, Rav1dFilterMode::Regular8Tap],
-    [Rav1dFilterMode::Sharp8Tap, Rav1dFilterMode::Regular8Tap],
-    [Rav1dFilterMode::Regular8Tap, Rav1dFilterMode::Sharp8Tap],
-    [Rav1dFilterMode::Smooth8Tap, Rav1dFilterMode::Sharp8Tap],
-    [Rav1dFilterMode::Sharp8Tap, Rav1dFilterMode::Sharp8Tap],
-    [Rav1dFilterMode::Regular8Tap, Rav1dFilterMode::Smooth8Tap],
-    [Rav1dFilterMode::Smooth8Tap, Rav1dFilterMode::Smooth8Tap],
-    [Rav1dFilterMode::Sharp8Tap, Rav1dFilterMode::Smooth8Tap],
-    [Rav1dFilterMode::Bilinear, Rav1dFilterMode::Bilinear],
+pub const DAV1D_FILTER_DIR: [[Dav1dFilterMode; 2]; Filter2d::COUNT] = [
+    [Dav1dFilterMode::Regular8Tap, Dav1dFilterMode::Regular8Tap],
+    [Dav1dFilterMode::Smooth8Tap, Dav1dFilterMode::Regular8Tap],
+    [Dav1dFilterMode::Sharp8Tap, Dav1dFilterMode::Regular8Tap],
+    [Dav1dFilterMode::Regular8Tap, Dav1dFilterMode::Sharp8Tap],
+    [Dav1dFilterMode::Smooth8Tap, Dav1dFilterMode::Sharp8Tap],
+    [Dav1dFilterMode::Sharp8Tap, Dav1dFilterMode::Sharp8Tap],
+    [Dav1dFilterMode::Regular8Tap, Dav1dFilterMode::Smooth8Tap],
+    [Dav1dFilterMode::Smooth8Tap, Dav1dFilterMode::Smooth8Tap],
+    [Dav1dFilterMode::Sharp8Tap, Dav1dFilterMode::Smooth8Tap],
+    [Dav1dFilterMode::Bilinear, Dav1dFilterMode::Bilinear],
 ];
 
 pub static DAV1D_FILTER_MODE_TO_Y_MODE: [u8; 5] = [

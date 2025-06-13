@@ -4,7 +4,7 @@ use crate::align::ArrayDefault;
 use crate::enum_map::DefaultValue;
 use crate::enum_map::EnumKey;
 use crate::in_range::InRange;
-use crate::include::dav1d::headers::Rav1dFilterMode;
+use crate::include::dav1d::headers::Dav1dFilterMode;
 use bitflags::bitflags;
 use std::fmt;
 use std::fmt::Display;
@@ -272,27 +272,27 @@ impl EnumKey<{ Self::COUNT }> for Filter2d {
 }
 
 impl Filter2d {
-    pub const fn h(&self) -> Rav1dFilterMode {
+    pub const fn h(&self) -> Dav1dFilterMode {
         use Filter2d::*;
         match *self {
-            Regular8Tap | RegularSmooth8Tap | RegularSharp8Tap => Rav1dFilterMode::Regular8Tap,
-            SharpRegular8Tap | SharpSmooth8Tap | Sharp8Tap => Rav1dFilterMode::Sharp8Tap,
-            SmoothRegular8Tap | Smooth8Tap | SmoothSharp8Tap => Rav1dFilterMode::Smooth8Tap,
-            Bilinear => Rav1dFilterMode::Bilinear,
+            Regular8Tap | RegularSmooth8Tap | RegularSharp8Tap => Dav1dFilterMode::Regular8Tap,
+            SharpRegular8Tap | SharpSmooth8Tap | Sharp8Tap => Dav1dFilterMode::Sharp8Tap,
+            SmoothRegular8Tap | Smooth8Tap | SmoothSharp8Tap => Dav1dFilterMode::Smooth8Tap,
+            Bilinear => Dav1dFilterMode::Bilinear,
         }
     }
 
-    pub const fn v(&self) -> Rav1dFilterMode {
+    pub const fn v(&self) -> Dav1dFilterMode {
         use Filter2d::*;
         match *self {
-            Regular8Tap | SharpRegular8Tap | SmoothRegular8Tap => Rav1dFilterMode::Regular8Tap,
-            RegularSharp8Tap | Sharp8Tap | SmoothSharp8Tap => Rav1dFilterMode::Sharp8Tap,
-            RegularSmooth8Tap | SharpSmooth8Tap | Smooth8Tap => Rav1dFilterMode::Smooth8Tap,
-            Bilinear => Rav1dFilterMode::Bilinear,
+            Regular8Tap | SharpRegular8Tap | SmoothRegular8Tap => Dav1dFilterMode::Regular8Tap,
+            RegularSharp8Tap | Sharp8Tap | SmoothSharp8Tap => Dav1dFilterMode::Sharp8Tap,
+            RegularSmooth8Tap | SharpSmooth8Tap | Smooth8Tap => Dav1dFilterMode::Smooth8Tap,
+            Bilinear => Dav1dFilterMode::Bilinear,
         }
     }
 
-    pub const fn hv(&self) -> (Rav1dFilterMode, Rav1dFilterMode) {
+    pub const fn hv(&self) -> (Dav1dFilterMode, Dav1dFilterMode) {
         (self.h(), self.v())
     }
 }

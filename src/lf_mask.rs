@@ -4,10 +4,10 @@ use crate::ctx::CaseSet;
 use crate::disjoint_mut::DisjointMut;
 use crate::include::common::intops::clip;
 use crate::include::common::intops::iclip;
+use crate::include::dav1d::headers::Dav1dFrameHeader;
 use crate::include::dav1d::headers::Dav1dLoopfilterModeRefDeltas;
-use crate::include::dav1d::headers::Rav1dFrameHeader;
-use crate::include::dav1d::headers::Rav1dPixelLayout;
 use crate::include::dav1d::headers::Dav1dRestorationType;
+use crate::include::dav1d::headers::Rav1dPixelLayout;
 use crate::internal::Bxy;
 use crate::levels::BlockSize;
 use crate::levels::SegmentId;
@@ -688,7 +688,7 @@ fn calc_lf_value_chroma(
 
 pub(crate) fn rav1d_calc_lf_values(
     lflvl_values: &mut [Align16<[[[u8; 2]; 8]; 4]>; SegmentId::COUNT],
-    hdr: &Rav1dFrameHeader,
+    hdr: &Dav1dFrameHeader,
     lf_delta: &[i8; 4],
 ) {
     let n_seg = if hdr.segmentation.enabled != 0 {

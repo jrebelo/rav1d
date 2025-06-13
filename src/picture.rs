@@ -5,13 +5,11 @@ use crate::error::Rav1dError::EGeneric;
 use crate::error::Rav1dResult;
 use crate::include::dav1d::common::Rav1dDataProps;
 use crate::include::dav1d::dav1d::Rav1dEventFlags;
-use crate::include::dav1d::headers::DRav1d;
 use crate::include::dav1d::headers::Dav1dContentLightLevel;
 use crate::include::dav1d::headers::Dav1dFrameHeader;
 use crate::include::dav1d::headers::Dav1dITUTT35;
 use crate::include::dav1d::headers::Dav1dMasteringDisplay;
 use crate::include::dav1d::headers::Dav1dSequenceHeader;
-use crate::include::dav1d::headers::Rav1dFrameHeader;
 use crate::include::dav1d::headers::Rav1dPixelLayout;
 use crate::include::dav1d::picture::Dav1dPicture;
 use crate::include::dav1d::picture::Rav1dPicAllocator;
@@ -218,7 +216,7 @@ fn picture_alloc_with_edges(
     w: c_int,
     h: c_int,
     seq_hdr: Option<Arc<Dav1dSequenceHeader>>,
-    frame_hdr: Option<Arc<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>>>,
+    frame_hdr: Option<Arc<Dav1dFrameHeader>>,
     bpc: u8,
     p_allocator: &Rav1dPicAllocator,
 ) -> Rav1dResult {
@@ -263,12 +261,12 @@ pub(crate) fn rav1d_thread_picture_alloc(
 ) -> Rav1dResult {
     let p = &mut f.sr_cur;
     let have_frame_mt = fc.len() > 1;
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap();
     picture_alloc_with_edges(
         logger,
         &mut p.p,
-        frame_hdr.size.width[1],
-        frame_hdr.size.height,
+        frame_hdr.width[1],
+        frame_hdr.height,
         f.seq_hdr.clone(),
         f.frame_hdr.clone(),
         bpc,

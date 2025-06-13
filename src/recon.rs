@@ -545,7 +545,7 @@ fn decode_coefs<BD: BitDepth>(
     let mut dc_dq;
     let ts = &f.ts[ts];
     let chroma = plane != 0;
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap();
     let lossless = frame_hdr.segmentation.lossless[b.seg_id.get()];
     let t_dim = &DAV1D_TXFM_DIMENSIONS[tx as usize];
     let dbg = dbg_block_info && plane != 0 && false;
@@ -568,14 +568,14 @@ fn decode_coefs<BD: BitDepth>(
     }
     if all_skip {
         *res_ctx = 0x40;
-        *txtp = if lossless { WHT_WHT } else { DCT_DCT };
+        *txtp = if lossless != 0 { WHT_WHT } else { DCT_DCT };
         return -1;
     }
 
     // transform type (chroma: derived, luma: explicitly coded)
     use Av1BlockIntraInter::*;
     *txtp = match &b.ii {
-        _ if lossless => {
+        _ if lossless != 0 => {
             assert!(t_dim.max == TxfmSize::S4x4 as _);
             WHT_WHT
         }
@@ -2838,10 +2838,10 @@ pub(crate) fn rav1d_recon_b_inter<BD: BitDepth>(
         + 4 * (t.b.y as isize * y_dst.pixel_stride::<BD>() + t.b.x as isize);
     let uvdstoff = 4
         * ((t.b.x >> ss_hor) as isize + (t.b.y >> ss_ver) as isize * BD::pxstride(f.cur.stride[1]));
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap();
     if frame_hdr.frame_type.is_key_or_intra() {
         // intrabc
-        assert!(!frame_hdr.size.super_res.is_enabled());
+        assert!(!frame_hdr.super_res.is_enabled());
         let scratch = t.scratch.inter_mut();
         mc::<BD>(
             f,
@@ -3680,7 +3680,7 @@ pub(crate) fn rav1d_filter_sbrow_deblock_cols<BD: BitDepth>(
         return;
     }
 
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap();
     if frame_hdr.loopfilter.level_y == [0; 2] {
         return;
     }
@@ -3710,7 +3710,7 @@ pub(crate) fn rav1d_filter_sbrow_deblock_rows<BD: BitDepth>(
     let sb128 = seq_hdr.sb128;
     let cdef = seq_hdr.cdef;
     let mask_offset = (sby >> (sb128 == 0) as c_int) * f.sb128w;
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap();
     if c.inloop_filters.contains(Rav1dInloopFilterType::DEBLOCK)
         && (frame_hdr.loopfilter.level_y != [0; 2])
     {
@@ -3820,8 +3820,8 @@ pub(crate) fn rav1d_filter_sbrow<BD: BitDepth>(
     if seq_hdr.cdef != 0 {
         rav1d_filter_sbrow_cdef::<BD>(c, f, t, sby);
     }
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
-    if frame_hdr.size.width[0] != frame_hdr.size.width[1] {
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap();
+    if frame_hdr.width[0] != frame_hdr.width[1] {
         rav1d_filter_sbrow_resize::<BD>(c, f, t, sby);
     }
     if !f.lf.restore_planes.is_empty() {

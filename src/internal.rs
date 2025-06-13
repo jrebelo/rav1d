@@ -24,14 +24,12 @@ use crate::include::dav1d::data::Rav1dData;
 use crate::include::dav1d::dav1d::Rav1dDecodeFrameType;
 use crate::include::dav1d::dav1d::Rav1dEventFlags;
 use crate::include::dav1d::dav1d::Rav1dInloopFilterType;
-use crate::include::dav1d::headers::DRav1d;
 use crate::include::dav1d::headers::Dav1dContentLightLevel;
 use crate::include::dav1d::headers::Dav1dFrameHeader;
 use crate::include::dav1d::headers::Dav1dITUTT35;
 use crate::include::dav1d::headers::Dav1dMasteringDisplay;
 use crate::include::dav1d::headers::Dav1dSequenceHeader;
 use crate::include::dav1d::headers::Dav1dWarpedMotionParams;
-use crate::include::dav1d::headers::Rav1dFrameHeader;
 use crate::include::dav1d::picture::Rav1dPicAllocator;
 use crate::include::dav1d::picture::Rav1dPicture;
 use crate::ipred::Rav1dIntraPredDSPContext;
@@ -379,7 +377,7 @@ pub struct Rav1dState {
     pub(crate) tiles: Vec<Rav1dTileGroup>,
     pub(crate) n_tiles: c_int,
     pub(crate) seq_hdr: Option<Arc<Dav1dSequenceHeader>>, // TODO(kkysen) Previously pooled.
-    pub(crate) frame_hdr: Option<Arc<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>>>, // TODO(kkysen) Previously pooled.
+    pub(crate) frame_hdr: Option<Arc<Dav1dFrameHeader>>,  // TODO(kkysen) Previously pooled.
     pub(crate) content_light: Option<Arc<Dav1dContentLightLevel>>,
     pub(crate) mastering_display: Option<Arc<Dav1dMasteringDisplay>>,
 
@@ -777,7 +775,7 @@ impl Rav1dFrameContext {
         self.in_cdf.try_read().unwrap()
     }
 
-    pub fn frame_hdr(&self) -> Arc<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>> {
+    pub fn frame_hdr(&self) -> Arc<Dav1dFrameHeader> {
         self.data
             .try_read()
             .unwrap()
@@ -792,7 +790,7 @@ impl Rav1dFrameContext {
 #[repr(C)]
 pub(crate) struct Rav1dFrameData {
     pub seq_hdr: Option<Arc<Dav1dSequenceHeader>>,
-    pub frame_hdr: Option<Arc<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>>>,
+    pub frame_hdr: Option<Arc<Dav1dFrameHeader>>,
     pub refp: [Rav1dThreadPicture; 7],
     // during block coding / reconstruction
     pub cur: Rav1dPicture,
@@ -850,10 +848,6 @@ impl Rav1dFrameData {
     pub fn bd_fn(&self) -> &'static Rav1dFrameContextBdFn {
         let bpc = BPC::from_bitdepth_max(self.bitdepth_max);
         Rav1dFrameContextBdFn::get(bpc)
-    }
-
-    pub fn frame_hdr(&self) -> &Rav1dFrameHeader {
-        self.frame_hdr.as_ref().unwrap()
     }
 }
 

@@ -2,10 +2,10 @@ use crate::align::Align8;
 use crate::disjoint_mut::DisjointMut;
 use crate::disjoint_mut::DisjointMutSlice;
 use crate::include::common::intops::apply_sign;
+use crate::include::dav1d::headers::Dav1dFrameHeader;
 use crate::include::dav1d::headers::Dav1dWarpedMotionParams;
 use crate::include::dav1d::headers::Dav1dWarpedMotionType;
-use crate::include::dav1d::headers::Rav1dFilterMode;
-use crate::include::dav1d::headers::Rav1dFrameHeader;
+use crate::include::dav1d::headers::Dav1dFilterMode;
 use crate::internal::Bxy;
 use crate::levels::BlockLevel;
 use crate::levels::BlockPartition;
@@ -41,7 +41,7 @@ pub struct BlockContext {
 
     /// No [`Rav1dFilterMode::Switchable`]s here.
     /// TODO(kkysen) split [`Rav1dFilterMode`] into a version without [`Rav1dFilterMode::Switchable`].
-    pub filter: [DisjointMut<Align8<[Rav1dFilterMode; 32]>>; 2],
+    pub filter: [DisjointMut<Align8<[Dav1dFilterMode; 32]>>; 2],
 
     pub tx_intra: DisjointMut<Align8<[i8; 32]>>,
     pub tx: DisjointMut<Align8<[TxfmSize; 32]>>,
@@ -167,19 +167,19 @@ pub fn get_filter_ctx(
         if *al.r#ref[0].index(b4 as usize) == r#ref || *al.r#ref[1].index(b4 as usize) == r#ref {
             *al.filter[dir as usize].index(b4 as usize)
         } else {
-            Rav1dFilterMode::N_SWITCHABLE_FILTERS
+            Dav1dFilterMode::N_SWITCHABLE_FILTERS
         }
     });
 
     (comp as u8) * 4
         + (if a_filter == l_filter {
             a_filter
-        } else if a_filter == Rav1dFilterMode::N_SWITCHABLE_FILTERS {
+        } else if a_filter == Dav1dFilterMode::N_SWITCHABLE_FILTERS {
             l_filter
-        } else if l_filter == Rav1dFilterMode::N_SWITCHABLE_FILTERS {
+        } else if l_filter == Dav1dFilterMode::N_SWITCHABLE_FILTERS {
             a_filter
         } else {
-            Rav1dFilterMode::N_SWITCHABLE_FILTERS
+            Dav1dFilterMode::N_SWITCHABLE_FILTERS
         } as u8)
 }
 
@@ -654,10 +654,10 @@ fn fix_int_mv_precision(mv: &mut Mv) {
 }
 
 #[inline]
-pub(crate) fn fix_mv_precision(hdr: &Rav1dFrameHeader, mv: &mut Mv) {
-    if hdr.force_integer_mv {
+pub(crate) fn fix_mv_precision(hdr: &Dav1dFrameHeader, mv: &mut Mv) {
+    if hdr.force_integer_mv != 0 {
         fix_int_mv_precision(mv);
-    } else if !(*hdr).hp {
+    } else if (*hdr).hp == 0 {
         mv.x = (mv.x - (mv.x >> 15)) & !1;
         mv.y = (mv.y - (mv.y >> 15)) & !1;
     }
@@ -670,7 +670,7 @@ pub(crate) fn get_gmv_2d(
     by4: c_int,
     bw4: c_int,
     bh4: c_int,
-    hdr: &Rav1dFrameHeader,
+    hdr: &Dav1dFrameHeader,
 ) -> Mv {
     match gmv.r#type {
         Dav1dWarpedMotionType::RotZoom => {
@@ -682,7 +682,7 @@ pub(crate) fn get_gmv_2d(
                 y: (gmv.matrix[0] >> 13) as i16,
                 x: (gmv.matrix[1] >> 13) as i16,
             };
-            if hdr.force_integer_mv {
+            if hdr.force_integer_mv != 0 {
                 fix_int_mv_precision(&mut res);
             }
             return res;
@@ -702,7 +702,7 @@ pub(crate) fn get_gmv_2d(
         y: apply_sign(yc.abs() + round >> shift << !hdr.hp as c_int, yc) as i16,
         x: apply_sign(xc.abs() + round >> shift << !hdr.hp as c_int, xc) as i16,
     };
-    if hdr.force_integer_mv {
+    if hdr.force_integer_mv != 0 {
         fix_int_mv_precision(&mut res);
     }
     return res;

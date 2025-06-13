@@ -13,16 +13,20 @@ use crate::include::common::intops::ulog2;
 use crate::include::dav1d::common::Rav1dDataProps;
 use crate::include::dav1d::data::Rav1dData;
 use crate::include::dav1d::dav1d::Rav1dDecodeFrameType;
-use crate::include::dav1d::headers::DRav1d;
 use crate::include::dav1d::headers::Dav1dContentLightLevel;
+use crate::include::dav1d::headers::Dav1dFilmGrainData;
+use crate::include::dav1d::headers::Dav1dFilterMode;
+use crate::include::dav1d::headers::Dav1dFrameHeader;
 use crate::include::dav1d::headers::Dav1dFrameHeaderCdef;
 use crate::include::dav1d::headers::Dav1dFrameHeaderDelta;
 use crate::include::dav1d::headers::Dav1dFrameHeaderDeltaLF;
 use crate::include::dav1d::headers::Dav1dFrameHeaderDeltaQ;
+use crate::include::dav1d::headers::Dav1dFrameHeaderFilmGrain;
 use crate::include::dav1d::headers::Dav1dFrameHeaderLoopFilter;
 use crate::include::dav1d::headers::Dav1dFrameHeaderOperatingPoint;
 use crate::include::dav1d::headers::Dav1dFrameHeaderQuant;
 use crate::include::dav1d::headers::Dav1dFrameHeaderRestoration;
+use crate::include::dav1d::headers::Dav1dFrameHeaderSegmentation;
 use crate::include::dav1d::headers::Dav1dFrameHeaderSuperRes;
 use crate::include::dav1d::headers::Dav1dFrameHeaderTiling;
 use crate::include::dav1d::headers::Dav1dFrameType;
@@ -30,6 +34,8 @@ use crate::include::dav1d::headers::Dav1dITUTT35;
 use crate::include::dav1d::headers::Dav1dLoopfilterModeRefDeltas;
 use crate::include::dav1d::headers::Dav1dMasteringDisplay;
 use crate::include::dav1d::headers::Dav1dRestorationType;
+use crate::include::dav1d::headers::Dav1dSegmentationData;
+use crate::include::dav1d::headers::Dav1dSegmentationDataSet;
 use crate::include::dav1d::headers::Dav1dSequenceHeader;
 use crate::include::dav1d::headers::Dav1dSequenceHeaderOperatingParameterInfo;
 use crate::include::dav1d::headers::Dav1dSequenceHeaderOperatingPoint;
@@ -40,18 +46,11 @@ use crate::include::dav1d::headers::ITUTT35PayloadPtr;
 use crate::include::dav1d::headers::Rav1dAdaptiveBoolean;
 use crate::include::dav1d::headers::Rav1dChromaSamplePosition;
 use crate::include::dav1d::headers::Rav1dColorPrimaries;
-use crate::include::dav1d::headers::Rav1dFilmGrainData;
-use crate::include::dav1d::headers::Rav1dFilterMode;
-use crate::include::dav1d::headers::Rav1dFrameHeader;
-use crate::include::dav1d::headers::Rav1dFrameHeaderFilmGrain;
-use crate::include::dav1d::headers::Rav1dFrameHeaderSegmentation;
 use crate::include::dav1d::headers::Rav1dFrameSize;
 use crate::include::dav1d::headers::Rav1dMatrixCoefficients;
 use crate::include::dav1d::headers::Rav1dObuType;
 use crate::include::dav1d::headers::Rav1dPixelLayout;
 use crate::include::dav1d::headers::Rav1dProfile;
-use crate::include::dav1d::headers::Rav1dSegmentationData;
-use crate::include::dav1d::headers::Rav1dSegmentationDataSet;
 use crate::include::dav1d::headers::Rav1dTransferCharacteristics;
 use crate::include::dav1d::headers::DAV1D_MAX_CDEF_STRENGTHS;
 use crate::include::dav1d::headers::DAV1D_MAX_OPERATING_POINTS;
@@ -618,11 +617,11 @@ fn parse_frame_size(
         for i in 0..7 {
             if gb.get_bit() {
                 let r#ref = &state.refs[refidx[i as usize] as usize].p;
-                let ref_size = &r#ref.p.frame_hdr.as_ref().ok_or(EINVAL)?.size;
-                let width1 = ref_size.width[1];
-                let height = ref_size.height;
-                let render_width = ref_size.render_width;
-                let render_height = ref_size.render_height;
+                let frame_hdr = &r#ref.p.frame_hdr.as_ref().ok_or(EINVAL)?;
+                let width1 = frame_hdr.width[1];
+                let height = frame_hdr.height;
+                let render_width = frame_hdr.render_width;
+                let render_height = frame_hdr.render_height;
                 let enabled = seqhdr.super_res != 0 && gb.get_bit();
                 let width_scale_denominator;
                 let width0;
@@ -1053,7 +1052,7 @@ fn parse_quant(
     }
 }
 
-fn parse_seg_data(gb: &mut GetBits) -> Rav1dSegmentationDataSet {
+fn parse_seg_data(gb: &mut GetBits) -> Dav1dSegmentationDataSet {
     let mut preskip = 0;
     let mut last_active_segid = -1 as i8;
     let d = array::from_fn(|i| {
@@ -1111,7 +1110,7 @@ fn parse_seg_data(gb: &mut GetBits) -> Rav1dSegmentationDataSet {
             last_active_segid = i;
             preskip = 1;
         }
-        Rav1dSegmentationData {
+        Dav1dSegmentationData {
             delta_q,
             delta_lf_y_v,
             delta_lf_y_h,
@@ -1122,7 +1121,7 @@ fn parse_seg_data(gb: &mut GetBits) -> Rav1dSegmentationDataSet {
             globalmv,
         }
     });
-    Rav1dSegmentationDataSet {
+    Dav1dSegmentationDataSet {
         d,
         preskip,
         last_active_segid,
@@ -1136,7 +1135,7 @@ fn parse_segmentation(
     quant: &Dav1dFrameHeaderQuant,
     debug: &Debug,
     gb: &mut GetBits,
-) -> Rav1dResult<Rav1dFrameHeaderSegmentation> {
+) -> Rav1dResult<Dav1dFrameHeaderSegmentation> {
     let enabled = gb.get_bit() as u8;
     let update_map;
     let temporal;
@@ -1179,7 +1178,7 @@ fn parse_segmentation(
         temporal = Default::default();
         update_data = Default::default();
 
-        let mut seg_data = Rav1dSegmentationDataSet::default();
+        let mut seg_data = Dav1dSegmentationDataSet::default();
         for data in &mut seg_data.d {
             data.r#ref = -1;
         }
@@ -1200,8 +1199,8 @@ fn parse_segmentation(
             quant.yac
         }
     });
-    let lossless = array::from_fn(|i| qidx[i] == 0 && delta_lossless);
-    Ok(Rav1dFrameHeaderSegmentation {
+    let lossless = array::from_fn(|i| (qidx[i] == 0 && delta_lossless) as u8);
+    Ok(Dav1dFrameHeaderSegmentation {
         enabled,
         update_map,
         temporal,
@@ -1609,7 +1608,7 @@ fn parse_film_grain_data(
     seqhdr: &Dav1dSequenceHeader,
     seed: c_uint,
     gb: &mut GetBits,
-) -> Rav1dResult<Rav1dFilmGrainData> {
+) -> Rav1dResult<Dav1dFilmGrainData> {
     let num_y_points = gb.get_bits(4) as c_int;
     if num_y_points > 14 {
         return Err(EINVAL);
@@ -1693,24 +1692,24 @@ fn parse_film_grain_data(
     }
     let overlap_flag = gb.get_bit();
     let clip_to_restricted_range = gb.get_bit();
-    Ok(Rav1dFilmGrainData {
+    Ok(Dav1dFilmGrainData {
         seed,
         num_y_points,
         y_points,
-        chroma_scaling_from_luma,
+        chroma_scaling_from_luma: chroma_scaling_from_luma as i32,
         num_uv_points,
         uv_points,
-        scaling_shift,
+        scaling_shift: scaling_shift as i32,
         ar_coeff_lag,
         ar_coeffs_y,
         ar_coeffs_uv,
-        ar_coeff_shift,
-        grain_scale_shift,
+        ar_coeff_shift: ar_coeff_shift as u64,
+        grain_scale_shift: grain_scale_shift as i32,
         uv_mult,
         uv_luma_mult,
         uv_offset,
-        overlap_flag,
-        clip_to_restricted_range,
+        overlap_flag: overlap_flag as i32,
+        clip_to_restricted_range: clip_to_restricted_range as i32,
     })
 }
 
@@ -1723,7 +1722,7 @@ fn parse_film_grain(
     ref_indices: &[i8; DAV1D_REFS_PER_FRAME],
     debug: &Debug,
     gb: &mut GetBits,
-) -> Rav1dResult<Rav1dFrameHeaderFilmGrain> {
+) -> Rav1dResult<Dav1dFrameHeaderFilmGrain> {
     let present = (seqhdr.film_grain_present != 0
         && (show_frame != 0 || showable_frame != 0)
         && gb.get_bit()) as u8;
@@ -1743,7 +1742,7 @@ fn parse_film_grain(
             if !found {
                 return Err(EINVAL);
             }
-            Rav1dFilmGrainData {
+            Dav1dFilmGrainData {
                 seed,
                 ..state.refs[refidx as usize]
                     .p
@@ -1765,7 +1764,7 @@ fn parse_film_grain(
         Default::default()
     };
     debug.post(gb, "filmgrain");
-    Ok(Rav1dFrameHeaderFilmGrain {
+    Ok(Dav1dFrameHeaderFilmGrain {
         data,
         present,
         update,
@@ -1779,7 +1778,7 @@ fn parse_frame_hdr(
     temporal_id: u8,
     spatial_id: u8,
     gb: &mut GetBits,
-) -> Rav1dResult<Rav1dFrameHeader> {
+) -> Rav1dResult<Dav1dFrameHeader> {
     let debug = Debug::new(false, "HDR", gb);
 
     debug.post(gb, "show_existing_frame");
@@ -1809,7 +1808,7 @@ fn parse_frame_hdr(
             // Default initialization.
             frame_id = Default::default();
         }
-        return Ok(Rav1dFrameHeader {
+        return Ok(Dav1dFrameHeader {
             spatial_id,
             temporal_id,
             show_existing_frame,
@@ -1952,7 +1951,7 @@ fn parse_frame_hdr(
         refidx = Default::default();
         frame_ref_short_signaling = Default::default();
         hp = Default::default();
-        subpel_filter_mode = Rav1dFilterMode::Regular8Tap;
+        subpel_filter_mode = Dav1dFilterMode::Regular8Tap;
         switchable_motion_mode = Default::default();
     } else {
         allow_intrabc = false;
@@ -1985,9 +1984,9 @@ fn parse_frame_hdr(
         )?;
         hp = !force_integer_mv && gb.get_bit();
         subpel_filter_mode = if gb.get_bit() {
-            Rav1dFilterMode::Switchable
+            Dav1dFilterMode::Switchable
         } else {
-            Rav1dFilterMode::from_repr(gb.get_bits(2) as usize).unwrap()
+            Dav1dFilterMode::from_repr(gb.get_bits(2) as u8).unwrap()
         };
         switchable_motion_mode = gb.get_bit() as u8;
         use_ref_frame_mvs = (error_resilient_mode == 0
@@ -2006,7 +2005,7 @@ fn parse_frame_hdr(
     let tiling = parse_tiling(seqhdr, &size, &debug, gb)?;
     let quant = parse_quant(seqhdr, &debug, gb);
     let segmentation = parse_segmentation(state, primary_ref_frame, &refidx, &quant, &debug, gb)?;
-    let all_lossless = segmentation.lossless.iter().all(|&it| it);
+    let all_lossless = segmentation.lossless.iter().all(|&it| it != 0);
     let delta = parse_delta(&quant, allow_intrabc, &debug, gb);
     let loopfilter = parse_loopfilter(
         state,
@@ -2080,8 +2079,13 @@ fn parse_frame_hdr(
         gb,
     )?;
 
-    Ok(Rav1dFrameHeader {
-        size,
+    Ok(Dav1dFrameHeader {
+        width: size.width,
+        height: size.height,
+        render_width: size.render_width,
+        render_height: size.render_height,
+        super_res: size.super_res,
+        have_render_size: size.have_render_size,
         film_grain,
         frame_type,
         frame_offset,
@@ -2095,17 +2099,17 @@ fn parse_frame_hdr(
         showable_frame,
         error_resilient_mode,
         disable_cdf_update,
-        allow_screen_content_tools,
-        force_integer_mv,
-        frame_size_override,
+        allow_screen_content_tools: allow_screen_content_tools as u8,
+        force_integer_mv: force_integer_mv as u8,
+        frame_size_override: frame_size_override as u8,
         primary_ref_frame,
         buffer_removal_time_present,
         operating_points,
         refresh_frame_flags,
-        allow_intrabc,
+        allow_intrabc: allow_intrabc as u8,
         frame_ref_short_signaling,
         refidx,
-        hp,
+        hp: hp as u8,
         subpel_filter_mode,
         switchable_motion_mode,
         use_ref_frame_mvs,
@@ -2114,7 +2118,7 @@ fn parse_frame_hdr(
         quant,
         segmentation,
         delta,
-        all_lossless,
+        all_lossless: all_lossless as u8,
         loopfilter,
         cdef,
         restoration,
@@ -2338,13 +2342,12 @@ fn parse_obus(
             }
 
             if c.frame_size_limit != 0
-                && frame_hdr.size.width[1] as i64 * frame_hdr.size.height as i64
-                    > c.frame_size_limit as i64
+                && frame_hdr.width[1] as i64 * frame_hdr.height as i64 > c.frame_size_limit as i64
             {
                 writeln!(
                     c.logger,
                     "Frame size {}x{} exceeds limit {}",
-                    frame_hdr.size.width[1], frame_hdr.size.height, c.frame_size_limit,
+                    frame_hdr.width[1], frame_hdr.height, c.frame_size_limit,
                 );
                 return Err(ERANGE);
             }
@@ -2356,7 +2359,7 @@ fn parse_obus(
                 }
             }
 
-            state.frame_hdr = Some(Arc::new(DRav1d::from_rav1d(frame_hdr))); // TODO(kkysen) fallible allocation
+            state.frame_hdr = Some(Arc::new(frame_hdr)); // TODO(kkysen) fallible allocation
 
             if r#type == Some(Rav1dObuType::Frame) {
                 // This is the frame header at the start of a frame OBU.
@@ -2474,7 +2477,7 @@ fn parse_obus(
     }
 
     if let (Some(_), Some(frame_hdr)) = (state.seq_hdr.as_ref(), state.frame_hdr.as_ref()) {
-        let frame_hdr = &***frame_hdr;
+        let frame_hdr = &**frame_hdr;
         if frame_hdr.show_existing_frame != 0 {
             match state.refs[frame_hdr.existing_frame_idx as usize]
                 .p

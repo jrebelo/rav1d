@@ -79,7 +79,7 @@ pub(crate) fn rav1d_prep_grain<BD: BitDepth>(
     grain: &mut GrainBD<BD>,
 ) {
     let GrainBD { grain_lut, scaling } = grain;
-    let frame_hdr = &***out.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**out.frame_hdr.as_ref().unwrap();
     let data = &frame_hdr.film_grain.data;
     let bitdepth_max = (1 << out.p.bpc) - 1;
     let bd = BD::from_c(bitdepth_max);
@@ -88,10 +88,10 @@ pub(crate) fn rav1d_prep_grain<BD: BitDepth>(
     // Generate grain LUTs as needed
     let [grain_lut_0, grain_lut_1, grain_lut_2] = &mut grain_lut.0;
     dsp.generate_grain_y.call(grain_lut_0, data, bd);
-    if data.num_uv_points[0] != 0 || data.chroma_scaling_from_luma {
+    if data.num_uv_points[0] != 0 || data.chroma_scaling_from_luma != 0 {
         dsp.generate_grain_uv[layout()].call(grain_lut_1, grain_lut_0, data, false, bd);
     }
-    if data.num_uv_points[1] != 0 || data.chroma_scaling_from_luma {
+    if data.num_uv_points[1] != 0 || data.chroma_scaling_from_luma != 0 {
         dsp.generate_grain_uv[layout()].call(grain_lut_2, grain_lut_0, data, true, bd);
     }
 
@@ -104,7 +104,7 @@ pub(crate) fn rav1d_prep_grain<BD: BitDepth>(
     // Copy over the non-modified planes
     // TODO: eliminate in favor of per-plane refs
     assert!(out.stride[0] == r#in.stride[0]);
-    let has_chroma = r#in.p.layout != Rav1dPixelLayout::I400 && !data.chroma_scaling_from_luma;
+    let has_chroma = r#in.p.layout != Rav1dPixelLayout::I400 && data.chroma_scaling_from_luma == 0;
     if has_chroma {
         assert!(out.stride[1] == r#in.stride[1]);
     }
@@ -131,7 +131,7 @@ pub(crate) fn rav1d_apply_grain_row<BD: BitDepth>(
     // Synthesize grain for the affected planes
     let GrainBD { grain_lut, scaling } = grain;
     let seq_hdr = &**out.seq_hdr.as_ref().unwrap();
-    let frame_hdr = &***out.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**out.frame_hdr.as_ref().unwrap();
     let data = &frame_hdr.film_grain.data;
     let in_data = &r#in.data.as_ref().unwrap().data;
     let out_data = &out.data.as_ref().unwrap().data;
@@ -160,7 +160,10 @@ pub(crate) fn rav1d_apply_grain_row<BD: BitDepth>(
         );
     }
 
-    if data.num_uv_points[0] == 0 && data.num_uv_points[1] == 0 && !data.chroma_scaling_from_luma {
+    if data.num_uv_points[0] == 0
+        && data.num_uv_points[1] == 0
+        && data.chroma_scaling_from_luma == 0
+    {
         return;
     }
 
@@ -178,7 +181,7 @@ pub(crate) fn rav1d_apply_grain_row<BD: BitDepth>(
     }
 
     let layout = r#in.p.layout.try_into().unwrap();
-    if data.chroma_scaling_from_luma {
+    if data.chroma_scaling_from_luma != 0 {
         for pl in 0..2 {
             dsp.fguv_32x32xn[layout].call(
                 layout,

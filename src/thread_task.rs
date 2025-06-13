@@ -394,7 +394,7 @@ fn merge_pending(c: &Rav1dContext) -> c_int {
 }
 
 fn create_filter_sbrow(fc: &Rav1dFrameContext, f: &Rav1dFrameData, pass: c_int) -> Rav1dResult {
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap();
     let has_deblock = (frame_hdr.loopfilter.level_y != [0; 2]) as c_int;
     let seq_hdr = &**f.seq_hdr.as_ref().unwrap();
     let has_cdef = seq_hdr.cdef;
@@ -446,7 +446,7 @@ pub(crate) fn rav1d_task_create_tile_sbrow(
     _cond_signal: c_int,
 ) -> Rav1dResult {
     let tasks = &fc.task_thread.tasks;
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap();
     let num_tasks = frame_hdr.tiling.cols as usize * frame_hdr.tiling.rows as usize;
     fc.task_thread.done[(pass & 1) as usize].store(0, Ordering::SeqCst);
     create_filter_sbrow(fc, f, pass)?;
@@ -563,7 +563,7 @@ fn check_tile(
         error = (p2 == TILE_ERROR) as c_int;
         error |= task_thread.error.fetch_or(error, Ordering::SeqCst);
     }
-    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+    let frame_hdr = &**f.frame_hdr.as_ref().unwrap();
     if error == 0 && frame_mt != 0 && !frame_hdr.frame_type.is_key_or_intra() {
         // check reference state
         let p = &f.sr_cur;
@@ -1032,7 +1032,7 @@ pub fn rav1d_worker_task(task_thread: Arc<Rav1dTaskContextTaskThread>) {
                         if fc.task_thread.error.load(Ordering::SeqCst) == 0 {
                             res_0 = rav1d_decode_frame_init_cdf(c, fc, &mut f, &fc.in_cdf());
                         }
-                        let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+                        let frame_hdr = &**f.frame_hdr.as_ref().unwrap();
                         if frame_hdr.refresh_context != 0 && !fc.task_thread.update_set.get() {
                             f.out_cdf.progress().unwrap().store(
                                 (if res_0.is_err() {
@@ -1062,7 +1062,7 @@ pub fn rav1d_worker_task(task_thread: Arc<Rav1dTaskContextTaskThread>) {
                                     fc.task_thread.done[(2 - p_0) as usize]
                                         .store(1 as c_int, Ordering::SeqCst);
                                     fc.task_thread.error.store(-(1 as c_int), Ordering::SeqCst);
-                                    let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+                                    let frame_hdr = &**f.frame_hdr.as_ref().unwrap();
                                     fc.task_thread.task_counter.fetch_sub(
                                         frame_hdr.tiling.cols as c_int
                                             * frame_hdr.tiling.rows as c_int
@@ -1149,7 +1149,7 @@ pub fn rav1d_worker_task(task_thread: Arc<Rav1dTaskContextTaskThread>) {
                             ts.progress[p_1 as usize].store(progress, Ordering::SeqCst);
                             reset_task_cur(c, ttd, t.frame_idx);
                             error_0 = fc.task_thread.error.load(Ordering::SeqCst);
-                            let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+                            let frame_hdr = &**f.frame_hdr.as_ref().unwrap();
                             if frame_hdr.refresh_context != 0
                                 && tc.frame_thread.pass <= 1
                                 && fc.task_thread.update_set.get()
@@ -1231,7 +1231,7 @@ pub fn rav1d_worker_task(task_thread: Arc<Rav1dTaskContextTaskThread>) {
                         }
                         // signal deblock progress
                         let seq_hdr = &**f.seq_hdr.as_ref().unwrap();
-                        let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+                        let frame_hdr = &**f.frame_hdr.as_ref().unwrap();
                         if frame_hdr.loopfilter.level_y != [0; 2] {
                             drop(f);
                             error_0 = fc.task_thread.error.load(Ordering::SeqCst);
@@ -1288,7 +1288,7 @@ pub fn rav1d_worker_task(task_thread: Arc<Rav1dTaskContextTaskThread>) {
                     }
                     TaskType::SuperResolution => {
                         let f = fc.data.try_read().unwrap();
-                        let frame_hdr = &***f.frame_hdr.as_ref().unwrap();
+                        let frame_hdr = &**f.frame_hdr.as_ref().unwrap();
                         if frame_hdr.size.width[0] != frame_hdr.size.width[1] {
                             if fc.task_thread.error.load(Ordering::SeqCst) == 0 {
                                 (f.bd_fn().filter_sbrow_resize)(c, &f, &mut tc, sby);

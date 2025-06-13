@@ -176,8 +176,8 @@ use crate::include::dav1d::dav1d::Dav1dSettings;
 use crate::include::dav1d::dav1d::Rav1dDecodeFrameType;
 use crate::include::dav1d::dav1d::Rav1dInloopFilterType;
 use crate::include::dav1d::dav1d::Rav1dSettings;
+use crate::include::dav1d::headers::Dav1dFilmGrainData;
 use crate::include::dav1d::headers::Dav1dSequenceHeader;
-use crate::include::dav1d::headers::Rav1dFilmGrainData;
 use crate::include::dav1d::picture::Dav1dPicture;
 use crate::include::dav1d::picture::Rav1dPicture;
 use crate::internal::Rav1dBitDepthDSPContext;
@@ -514,12 +514,12 @@ pub unsafe extern "C" fn dav1d_parse_sequence_header(
     .into()
 }
 
-impl Rav1dFilmGrainData {
+impl Dav1dFilmGrainData {
     fn has_grain(&self) -> bool {
         self.num_y_points != 0
             || self.num_uv_points[0] != 0
             || self.num_uv_points[1] != 0
-            || self.clip_to_restricted_range && self.chroma_scaling_from_luma
+            || self.clip_to_restricted_range != 0 && self.chroma_scaling_from_luma != 0
     }
 }
 
