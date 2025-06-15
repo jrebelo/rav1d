@@ -380,7 +380,6 @@ pub struct Rav1dState {
     pub(crate) tiles: Vec<Rav1dTileGroup>,
     pub(crate) n_tiles: c_int,
     pub(crate) seq_hdr: Option<Arc<DRav1d<Rav1dSequenceHeader, Dav1dSequenceHeader>>>, // TODO(kkysen) Previously pooled.
-    pub(crate) frame_hdr: Option<Arc<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>>>, // TODO(kkysen) Previously pooled.
     pub(crate) content_light: Option<Arc<Rav1dContentLightLevel>>,
     pub(crate) mastering_display: Option<Arc<Rav1dMasteringDisplay>>,
 

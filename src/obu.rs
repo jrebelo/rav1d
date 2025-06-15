@@ -14,6 +14,7 @@ use crate::include::dav1d::common::Rav1dDataProps;
 use crate::include::dav1d::data::Rav1dData;
 use crate::include::dav1d::dav1d::Rav1dDecodeFrameType;
 use crate::include::dav1d::headers::DRav1d;
+use crate::include::dav1d::headers::Dav1dFrameHeader;
 use crate::include::dav1d::headers::Dav1dSequenceHeader;
 use crate::include::dav1d::headers::Rav1dAdaptiveBoolean;
 use crate::include::dav1d::headers::Rav1dChromaSamplePosition;
@@ -2150,17 +2151,20 @@ fn parse_obus(
     props: &Rav1dDataProps,
     gb: &mut GetBits,
 ) -> Rav1dResult<()> {
-    fn skip(state: &mut Rav1dState) {
+    let mut state_frame_hdr = None;
+    fn skip(
+        state: &mut Rav1dState,
+        frame_hdr: Option<Arc<DRav1d<Rav1dFrameHeader, Dav1dFrameHeader>>>,
+    ) {
         // update refs with only the headers in case we skip the frame
         for i in 0..8 {
-            if state.frame_hdr.as_ref().unwrap().refresh_frame_flags & (1 << i) != 0 {
+            if frame_hdr.as_ref().unwrap().refresh_frame_flags & (1 << i) != 0 {
                 let _ = mem::take(&mut state.refs[i as usize].p);
-                state.refs[i as usize].p.p.frame_hdr = state.frame_hdr.clone();
+                state.refs[i as usize].p.p.frame_hdr = frame_hdr.clone();
                 state.refs[i as usize].p.p.seq_hdr = state.seq_hdr.clone();
             }
         }
 
-        let _ = mem::take(&mut state.frame_hdr);
         state.n_tiles = 0;
     }
 
@@ -2215,8 +2219,9 @@ fn parse_obus(
         r#in: &CArc<[u8]>,
         props: &Rav1dDataProps,
         gb: &mut GetBits,
+        frame_hdr: &Rav1dFrameHeader,
     ) -> Rav1dResult {
-        let hdr = parse_tile_hdr(&state.frame_hdr.as_ref().ok_or(EINVAL)?.tiling, gb);
+        let hdr = parse_tile_hdr(&frame_hdr.tiling, gb);
         // Align to the next byte boundary and check for overrun.
         gb.bytealign();
         if gb.has_error() != 0 {
@@ -2277,13 +2282,13 @@ fn parse_obus(
 
             match &state.seq_hdr {
                 None => {
-                    state.frame_hdr = None;
+                    state_frame_hdr = None;
                     state.frame_flags |= PictureFlags::NEW_SEQUENCE;
                 }
                 Some(c_seq_hdr) if !seq_hdr.eq_without_operating_parameter_info(&c_seq_hdr) => {
                     // See 7.5, `operating_parameter_info` is allowed to change in
                     // sequence headers of a single sequence.
-                    state.frame_hdr = None;
+                    state_frame_hdr = None;
                     let _ = mem::take(&mut state.content_light);
                     let _ = mem::take(&mut state.mastering_display);
                     for i in 0..8 {
@@ -2306,9 +2311,8 @@ fn parse_obus(
             }
             state.seq_hdr = Some(Arc::new(DRav1d::from_rav1d(seq_hdr))); // TODO(kkysen) fallible allocation
         }
-        Some(Rav1dObuType::RedundantFrameHdr) if state.frame_hdr.is_some() => {}
+        Some(Rav1dObuType::RedundantFrameHdr) if state_frame_hdr.is_some() => {}
         Some(Rav1dObuType::RedundantFrameHdr | Rav1dObuType::Frame | Rav1dObuType::FrameHdr) => {
-            state.frame_hdr = None;
             // TODO(kkysen) C originally re-used this allocation,
             // but it was also pooling, which we've dropped for now.
 
@@ -2349,18 +2353,18 @@ fn parse_obus(
                 }
             }
 
-            state.frame_hdr = Some(Arc::new(DRav1d::from_rav1d(frame_hdr))); // TODO(kkysen) fallible allocation
+            state_frame_hdr = Some(frame_hdr); // TODO(kkysen) fallible allocation
 
             if r#type == Some(Rav1dObuType::Frame) {
                 // This is the frame header at the start of a frame OBU.
                 // There's no trailing bit at the end to skip,
                 // but we do need to align to the next byte.
                 gb.bytealign();
-                parse_tile_grp(state, r#in, props, gb)?;
+                parse_tile_grp(state, r#in, props, gb, state_frame_hdr.as_ref().unwrap())?;
             }
         }
         Some(Rav1dObuType::TileGrp) => {
-            parse_tile_grp(state, r#in, props, gb)?;
+            parse_tile_grp(state, r#in, props, gb, state_frame_hdr.as_ref().unwrap())?;
         }
         Some(Rav1dObuType::Metadata) => {
             let debug = Debug::new(false, "OBU", &gb);
@@ -2465,8 +2469,7 @@ fn parse_obus(
         }
     }
 
-    if let (Some(_), Some(frame_hdr)) = (state.seq_hdr.as_ref(), state.frame_hdr.as_ref()) {
-        let frame_hdr = &***frame_hdr;
+    if let (Some(_), Some(frame_hdr)) = (state.seq_hdr.as_ref(), state_frame_hdr) {
         if frame_hdr.show_existing_frame != 0 {
             match state.refs[frame_hdr.existing_frame_idx as usize]
                 .p
@@ -2478,12 +2481,12 @@ fn parse_obus(
             {
                 Rav1dFrameType::Inter | Rav1dFrameType::Switch => {
                     if c.decode_frame_type > Rav1dDecodeFrameType::Reference {
-                        return Ok(skip(state));
+                        return Ok(skip(state, Some(Arc::new(DRav1d::from_rav1d(frame_hdr)))));
                     }
                 }
                 Rav1dFrameType::Intra => {
                     if c.decode_frame_type > Rav1dDecodeFrameType::Intra {
-                        return Ok(skip(state));
+                        return Ok(skip(state, Some(Arc::new(DRav1d::from_rav1d(frame_hdr)))));
                     }
                 }
                 _ => {}
@@ -2599,7 +2602,6 @@ fn parse_obus(
                     let _ = mem::take(&mut state.refs[i as usize].refmvs);
                 }
             }
-            state.frame_hdr = None;
         } else if state.n_tiles == frame_hdr.tiling.cols as c_int * frame_hdr.tiling.rows as c_int {
             match frame_hdr.frame_type {
                 Rav1dFrameType::Inter | Rav1dFrameType::Switch => {
@@ -2607,7 +2609,7 @@ fn parse_obus(
                         || c.decode_frame_type == Rav1dDecodeFrameType::Reference
                             && frame_hdr.refresh_frame_flags == 0
                     {
-                        return Ok(skip(state));
+                        return Ok(skip(state, Some(Arc::new(DRav1d::from_rav1d(frame_hdr)))));
                     }
                 }
                 Rav1dFrameType::Intra => {
@@ -2615,7 +2617,7 @@ fn parse_obus(
                         || c.decode_frame_type == Rav1dDecodeFrameType::Reference
                             && frame_hdr.refresh_frame_flags == 0
                     {
-                        return Ok(skip(state));
+                        return Ok(skip(state, Some(Arc::new(DRav1d::from_rav1d(frame_hdr)))));
                     }
                 }
                 _ => {}
@@ -2625,7 +2627,6 @@ fn parse_obus(
             }
             rav1d_submit_frame(c, state)?;
             assert!(state.tiles.is_empty());
-            state.frame_hdr = None;
             state.n_tiles = 0;
         }
     }
